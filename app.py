@@ -1,4 +1,3 @@
-
 """
 IJV Thermal Comfort Tool
 基于撞击射流通风（IJV）的热舒适评价工具
@@ -57,15 +56,12 @@ with st.sidebar:
         vs_max = st.number_input("vs max", value=2.0, step=0.1)
         vs_step = st.number_input("vs step", value=0.1, step=0.1, format="%.1f")
 
-    # ── PMV 参数 ──
-    st.divider()
-    st.subheader("Thermal Comfort (PMV)")
-    M    = st.number_input("Metabolic rate M (W/m²)", value=70.0, step=5.0,
-                           help="Seated=58, Standing=70, Walking=93")
-    I_cl = st.number_input("Clothing I_cl (clo)",     value=0.5,  step=0.1,
-                           help="Summer light=0.5, Business=1.0") * 0.155
-    U    = st.number_input("Air speed U (m/s)",        value=0.3,  step=0.05)
-    RH   = st.number_input("Rel. humidity RH (%)",     value=60.0, step=5.0)
+    # ── PMV 固定参数（不在界面显示）──
+    M    = 58.15   # 新陈代谢量 W/m²
+    W    = 0.0     # 机械做功 W/m²
+    I_cl = 0.124   # 服装热阻 m²K/W
+    RH   = 50.0    # 相对湿度 %
+    U    = 0.3     # 工作区风速 m/s
 
     st.divider()
     run = st.button("▶ Run", type="primary", use_container_width=True)
@@ -151,7 +147,7 @@ if mode == "Single Case":
             ('toz', 0.60, 'Occupied zone', '#2ecc71'),
             ('tmz', 1.80, 'Mixed zone',    '#f39c12'),
             ('te',  3.50, 'Exhaust',       '#f39c12'),
-            ('tc',  3.60, 'Ceiling',       "#f3b712"),
+            ('tc',  3.60, 'Ceiling',       '#f39c12'),
         ]
         fig_profile = go.Figure()
         fig_profile.add_trace(go.Bar(
