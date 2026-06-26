@@ -25,7 +25,7 @@ def calc_pa(ta, RH):
     return RH / 100.0 * 610.78 * math.exp(17.27 * ta / (ta + 237.3))
 
 
-def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=70.0, W=0.0, I_cl=0.089, U=0.3, RH=60.0):
+def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH=50.0):
     """Fanger PMV/PPD，tr 由地板/天花板/人体面积加权估算"""
     ta  = toz
     MW  = M - W
@@ -72,7 +72,7 @@ class ThermalModel:
 
     def set_case(self, a, b, hr, Ap, Pt, N, ts, vs, S, hp,
                  # ── PMV 附加参数 (默认: 上海夏季 / 站立轻活动 / 0.5clo) ──
-                 M=70.0, W=0.0, I_cl=0.0775, U=0.3, RH=60.0):
+                 M=58.15, W=0.0, I_cl=0.124, U=0.3, RH=50.0):
         self.a, self.b, self.hr = a, b, hr
         self.Ap, self.Pt, self.N = Ap, Pt, N
         self.ts, self.vs, self.S, self.hp = ts, vs, S, hp
@@ -201,8 +201,8 @@ class BatchSolver:
     def run_batch(self, a_list, b_list, hr_list, Ap_list, Pt_list,
                   N_list, ts_list, vs_list, S_list, hp_list,
                   # ── PMV 批量参数 ──
-                  M_list=[70.0], W_list=[0.0], I_cl_list=[0.0775],
-                  U_list=[0.3], RH_list=[60.0],
+                  M_list=[58.15], W_list=[0.0], I_cl_list=[0.124],
+                  U_list=[0.3], RH_list=[50.0],
                   verbose=True):
 
         all_lists  = [a_list, b_list, hr_list, Ap_list, Pt_list,
@@ -290,18 +290,16 @@ if __name__ == "__main__":
     # 原有热力学参数
     a_list  = [5.0];    b_list  = [5.0];    hr_list = [3.6]
     Ap_list = [2.56];   Pt_list = [120.0];  N_list  = [32]
-    ts_list = [15, 16, 17, 18, 19, 20, 21, 22]
-    vs_list = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+    ts_list = [15, 16, 17, 18, 19, 20]
+    vs_list = [1.6, 1.9, 2.2, 2.5, 2.8]
     S_list  = [0.170625];  hp_list = [1.5]
 
-    # PMV 参数 (上海夏季 / 站立轻活动 / 0.5clo)
-    M_list=[58.15]; W_list=[0.0]; I_cl_list=[0.089]; U_list=[0.3]; RH_list=[60.0]
+    # PMV 固定参数（坐姿 / 0.8clo / RH50% / U0.3m/s）
+    # M=58.15 W/m²  W=0.0  I_cl=0.124 m²K/W  U=0.3 m/s  RH=50%
 
     solver = BatchSolver()
     solver.run_batch(a_list, b_list, hr_list, Ap_list, Pt_list,
-                     N_list, ts_list, vs_list, S_list, hp_list,
-                     M_list=M_list, W_list=W_list, I_cl_list=I_cl_list,
-                     U_list=U_list, RH_list=RH_list)
+                     N_list, ts_list, vs_list, S_list, hp_list)
     solver.summary_stats()
     solver.save_csv('thermal_model_results_all.csv')
     solver.save_csv('thermal_model_results_qualified.csv', qualified_only=True)
