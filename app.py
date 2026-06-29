@@ -86,9 +86,8 @@ with col_in:
 
     if single:
         c1, c2 = st.columns(2)
-        ts = c1.number_input("ts (°C)", value=18, min_value=10, max_value=25, step=1)
-        vs = c2.number_input("vs (m/s)", value=1.5, min_value=0.5, max_value=4.0,
-                             step=0.1, format="%.1f")
+        ts = c1.number_input("ts (°C)", value=18.0, format="%.2f")
+        vs = c2.number_input("vs (m/s)", value=1.5, format="%.2f")
     else:
         st.markdown("**ts 范围 (°C)**")
         c1, c2, c3 = st.columns(3)
