@@ -89,12 +89,17 @@ with col_in:
         ts = c1.number_input("ts (°C)", value=18.0, format="%.2f")
         vs = c2.number_input("vs (m/s)", value=1.5, format="%.2f")
     else:
-        ts_input = st.text_input("ts 列表 (°C)，逗号分隔",
-                                  value="15, 16, 17, 18, 19, 20",
-                                  help="例如: 15, 16.5, 18, 20")
-        vs_input = st.text_input("vs 列表 (m/s)，逗号分隔",
-                                  value="1.0, 1.2, 1.4, 1.6, 1.8, 2.0",
-                                  help="例如: 1.0, 1.5, 2.0")
+        st.markdown("**ts 范围 (°C)**")
+        c1, c2, c3 = st.columns(3)
+        ts_min  = c1.number_input("最小 min", value=15.0, format="%.2f")
+        ts_max  = c2.number_input("最大 max", value=22.0, format="%.2f")
+        ts_step = c3.number_input("步长 step", value=1.0, format="%.2f", min_value=0.01)
+
+        st.markdown("**vs 范围 (m/s)**")
+        c1, c2, c3 = st.columns(3)
+        vs_min  = c1.number_input("最小 min", value=1.0, format="%.2f")
+        vs_max  = c2.number_input("最大 max", value=2.0, format="%.2f")
+        vs_step = c3.number_input("步长 step", value=0.1, format="%.2f", min_value=0.01)
 
     st.divider()
     # 固定参数展示
@@ -233,12 +238,10 @@ with col_out:
 
     # ── 批量模式 ──────────────────────────────────────────────────────────────
     else:
-        try:
-            ts_list = [float(x.strip()) for x in ts_input.split(",") if x.strip()]
-            vs_list = [float(x.strip()) for x in vs_input.split(",") if x.strip()]
-        except ValueError:
-            st.error("⚠️ 输入格式错误，请用逗号分隔数字，例如: 15, 16, 17")
-            st.stop()
+        ts_list = [round(ts_min + i*ts_step, 4)
+                   for i in range(int(round((ts_max-ts_min)/ts_step))+1)]
+        vs_list = [round(vs_min + i*vs_step, 4)
+                   for i in range(int(round((vs_max-vs_min)/vs_step))+1)]
         total = len(ts_list) * len(vs_list)
 
         st.markdown(f"#### 批量计算  共 {total} 个工况")
