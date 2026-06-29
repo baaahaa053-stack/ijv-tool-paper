@@ -21,15 +21,15 @@ I_cl = 0.124   # Clothing insulation (m²K/W)
 RH   = 50.0    # Relative humidity (%)
 U    = 0.3     # Air speed in occupied zone (m/s)
 
-# ── Colour palette (HVAC convention) ─────────────────────────────────────────
-C_SUPPLY  = "#1a6faf"   # deep blue  — supply / cold
-C_FLOOR   = "#4a9fd4"   # mid blue   — near-floor
-C_OCC     = "#2e8b57"   # forest green — occupied zone
-C_MIXED   = "#c0392b"   # brick red  — mixed / upper zone
-C_EXHAUST = "#922b21"   # dark red   — exhaust / ceiling
-C_OK      = "#2e8b57"   # green — pass
-C_WARN    = "#c0392b"   # red   — fail
-C_NEUTRAL = "#7f8c8d"   # gray  — neutral
+# ── Colour palette (engineering psychrometric chart convention) ──────────────
+C_SUPPLY  = "#0000FF"   # pure blue   — supply / cold
+C_FLOOR   = "#4499FF"   # light blue  — near-floor air
+C_OCC     = "#00AA44"   # green       — occupied zone
+C_MIXED   = "#FF6600"   # orange      — mixed zone
+C_EXHAUST = "#FF0000"   # pure red    — exhaust / ceiling
+C_OK      = "#00AA44"   # green — pass
+C_WARN    = "#FF0000"   # red   — fail
+C_NEUTRAL = "#555555"   # gray  — neutral
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 def pmv_color(v):
@@ -53,7 +53,7 @@ PROFILE_ZONES = [
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(
-    f"<h2 style='text-align:center; margin-bottom:2px; color:#1a3a5c;'>"
+    f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; 10-Zone Nonlinear Thermal Model"
@@ -70,7 +70,7 @@ col_in, col_out = st.columns([1, 2], gap="large")
 # ════════════════════════════════════════
 with col_in:
     st.markdown(f"<span style='font-size:15px; font-weight:600; "
-                f"color:#1a3a5c;'>Input Parameters</span>",
+                f"color:#003399;'>Input Parameters</span>",
                 unsafe_allow_html=True)
 
     mode = st.radio("Mode", ["Single Case", "Batch Solve"],
@@ -79,7 +79,7 @@ with col_in:
     st.divider()
 
     # Room geometry
-    st.markdown(f"<b style='color:#1a3a5c;'>Room Geometry</b>",
+    st.markdown(f"<b style='color:#003399;'>Room Geometry</b>",
                 unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     a  = c1.number_input("Length a (m)",  value=5.0,  step=0.5, format="%.1f")
@@ -87,7 +87,7 @@ with col_in:
     hr = c3.number_input("Height hr (m)", value=3.6,  step=0.1, format="%.1f")
 
     # Occupants
-    st.markdown(f"<b style='color:#1a3a5c;'>Occupants</b>",
+    st.markdown(f"<b style='color:#003399;'>Occupants</b>",
                 unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     N  = c1.number_input("N",        value=32,    step=1)
@@ -96,7 +96,7 @@ with col_in:
     hp = c4.number_input("hp (m)",   value=1.5,   step=0.05, format="%.2f")
 
     # Supply air
-    st.markdown(f"<b style='color:#1a3a5c;'>Supply Air</b>",
+    st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
                 unsafe_allow_html=True)
     S = st.number_input("Nozzle area S (m²)", value=0.170625, format="%.6f")
 
@@ -107,7 +107,7 @@ with col_in:
         vs = c2.number_input("Supply vel vs (m/s)", value=1.5,
                              step=0.1, format="%.2f")
     else:
-        st.markdown(f"<b style='color:#1a3a5c;'>Supply temperature ts (°C)</b>",
+        st.markdown(f"<b style='color:#003399;'>Supply temperature ts (°C)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         ts_min  = c1.number_input("Min",  value=15.0, step=0.5, format="%.2f")
@@ -115,7 +115,7 @@ with col_in:
         ts_step = c3.number_input("Step", value=1.0,  step=0.5, format="%.2f",
                                   min_value=0.01)
 
-        st.markdown(f"<b style='color:#1a3a5c;'>Supply velocity vs (m/s)</b>",
+        st.markdown(f"<b style='color:#003399;'>Supply velocity vs (m/s)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         vs_min  = c1.number_input("Min",  value=1.0, step=0.1, format="%.2f")
@@ -143,7 +143,7 @@ with col_in:
 with col_out:
     if not run:
         st.markdown(f"<span style='font-size:15px; font-weight:600; "
-                    f"color:#1a3a5c;'>Results</span>", unsafe_allow_html=True)
+                    f"color:#003399;'>Results</span>", unsafe_allow_html=True)
         st.info("Set parameters on the left and click **▶ Calculate**.")
         st.stop()
 
@@ -208,7 +208,7 @@ with col_out:
         g1, g2 = st.columns([3, 2])
 
         with g1:
-            st.markdown(f"<b style='color:#1a3a5c;'>Temperature Profile</b>",
+            st.markdown(f"<b style='color:#003399;'>Temperature Profile</b>",
                         unsafe_allow_html=True)
             fig = go.Figure(go.Bar(
                 x=[res[z] for z, *_ in PROFILE_ZONES],
@@ -235,7 +235,7 @@ with col_out:
             st.plotly_chart(fig, use_container_width=True)
 
         with g2:
-            st.markdown(f"<b style='color:#1a3a5c;'>PMV Index</b>",
+            st.markdown(f"<b style='color:#003399;'>PMV Index</b>",
                         unsafe_allow_html=True)
             fig2 = go.Figure(go.Indicator(
                 mode="gauge+number",
@@ -291,7 +291,7 @@ with col_out:
                    for i in range(int(round((vs_max-vs_min)/vs_step))+1)]
         total = len(ts_list) * len(vs_list)
 
-        st.markdown(f"<b style='color:#1a3a5c;'>Batch Results — "
+        st.markdown(f"<b style='color:#003399;'>Batch Results — "
                     f"{total} cases</b>", unsafe_allow_html=True)
         bar = st.progress(0)
         rows = []
@@ -335,9 +335,9 @@ with col_out:
                     x1=row['ts'] + 0.45*ts_step,
                     y0=row['vs'] - 0.45*vs_step,
                     y1=row['vs'] + 0.45*vs_step,
-                    line=dict(color='#1a3a5c', width=2))
+                    line=dict(color='#003399', width=2))
             fig.update_layout(
-                title=dict(text=title, font=dict(size=13, color='#1a3a5c')),
+                title=dict(text=title, font=dict(size=13, color='#003399')),
                 xaxis_title="Supply temperature ts (°C)",
                 yaxis_title="Supply velocity vs (m/s)",
                 font=dict(family="Arial", size=12),
