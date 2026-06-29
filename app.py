@@ -211,32 +211,34 @@ with col_out:
         with g1:
             st.markdown(f"<b style='color:#003399;'>Temperature Profile</b>",
                         unsafe_allow_html=True)
-            # 温度值列表
-            _temps = [res[z] for z, *_ in PROFILE_ZONES]
-            _t_min, _t_max = min(_temps), max(_temps)
-            # 按温度从蓝(冷)到红(热)线性插值颜色
-            def _t2color(t):
-                if _t_max == _t_min:
-                    r = 0.5
-                else:
-                    r = (t - _t_min) / (_t_max - _t_min)
-                _r = int(255 * r)
-                _b = int(255 * (1 - r))
-                _g = int(80 * (1 - abs(2*r - 1)))  # 中间略带绿色过渡
-                return f"rgb({_r},{_g},{_b})"
-            _colors = [_t2color(t) for t in _temps]
-            _labels = [f"{h:.2f} m  {l}" for _, h, l in PROFILE_ZONES]
+            # 按温度从低到高排序，颜色固定六色阶：蓝→青→绿→黄→橙→红
+            _zone_data = [(z, h, l) for z, h, l in PROFILE_ZONES]
+            _temps_raw = [res[z] for z, h, l in _zone_data]
+            # 按温度升序排列
+            _sorted = sorted(zip(_temps_raw, _zone_data), key=lambda x: x[0])
+            _six_colors = ["#0000FF","#00FFFF","#00FF00","#FFFF00","#FF8000","#FF0000"]
+            # 给每个区分配颜色（按温度排名）
+            _color_map = {}
+            for rank, (t, (z, h, l)) in enumerate(_sorted):
+                _color_map[z] = _six_colors[rank]
+            # 绘图顺序：天花板在上(高度大的在上)，地板在下
+            _plot_order = sorted(_zone_data, key=lambda x: x[1])  # 低到高
+            _labels  = [f"{h:.2f} m  {l}" for _, h, l in _plot_order]
+            _tvals   = [res[z] for z, h, l in _plot_order]
+            _colors  = [_color_map[z] for z, h, l in _plot_order]
             fig = go.Figure(go.Bar(
-                x=_temps,
+                x=_tvals,
                 y=_labels,
                 orientation='h',
                 marker_color=_colors,
-                text=[f"{t:.1f} °C" for t in _temps],
+                marker_line=dict(width=0),
+                text=[f"{t:.1f} °C" for t in _tvals],
                 textposition='outside',
                 width=0.55,
             ))
-            xmin = _t_min - 1
-            xmax = _t_max + 3
+            xmin = min(_tvals) - 1
+            xmax = max(_tvals) + 3
+            # categoryarray 从下到上：地板在下，天花板在上
             fig.update_layout(
                 xaxis=dict(title="Temperature (°C)", range=[xmin, xmax],
                            showgrid=True, gridcolor="#e8ecef"),
