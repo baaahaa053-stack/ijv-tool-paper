@@ -86,20 +86,20 @@ with col_in:
 
     if single:
         c1, c2 = st.columns(2)
-        ts = c1.number_input("ts (°C)", value=18.0, format="%.2f")
-        vs = c2.number_input("vs (m/s)", value=1.5, format="%.2f")
+        ts = c1.number_input("ts (°C)", value=18.0, step=0.5, format="%.2f")
+        vs = c2.number_input("vs (m/s)", value=1.5, step=0.1, format="%.2f")
     else:
         st.markdown("**ts 范围 (°C)**")
         c1, c2, c3 = st.columns(3)
-        ts_min  = c1.number_input("最小 min", value=15.0, format="%.2f")
-        ts_max  = c2.number_input("最大 max", value=22.0, format="%.2f")
-        ts_step = c3.number_input("步长 step", value=1.0, format="%.2f", min_value=0.01)
+        ts_min  = c1.number_input("最小 min", value=15.0, step=0.5, format="%.2f")
+        ts_max  = c2.number_input("最大 max", value=22.0, step=0.5, format="%.2f")
+        ts_step = c3.number_input("步长 step", value=1.0, step=0.5, format="%.2f", min_value=0.01)
 
         st.markdown("**vs 范围 (m/s)**")
         c1, c2, c3 = st.columns(3)
-        vs_min  = c1.number_input("最小 min", value=1.0, format="%.2f")
-        vs_max  = c2.number_input("最大 max", value=2.0, format="%.2f")
-        vs_step = c3.number_input("步长 step", value=0.1, format="%.2f", min_value=0.01)
+        vs_min  = c1.number_input("最小 min", value=1.0, step=0.1, format="%.2f")
+        vs_max  = c2.number_input("最大 max", value=2.0, step=0.1, format="%.2f")
+        vs_step = c3.number_input("步长 step", value=0.1, step=0.1, format="%.2f", min_value=0.01)
 
     st.divider()
     # 固定参数展示
