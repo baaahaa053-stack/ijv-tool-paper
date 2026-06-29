@@ -68,8 +68,8 @@ with col_in:
     # 房间
     st.markdown("**房间 Room**")
     c1, c2, c3 = st.columns(3)
-    a  = c1.number_input("a (m)",  value=5.0, step=0.5, format="%.1f")
-    b  = c2.number_input("b (m)",  value=5.0, step=0.5, format="%.1f")
+    a  = c1.number_input("a (m)",  value=5.0, step=0.1, format="%.1f")
+    b  = c2.number_input("b (m)",  value=5.0, step=0.1, format="%.1f")
     hr = c3.number_input("hr (m)", value=3.6, step=0.1, format="%.1f")
 
     # 人员
@@ -92,15 +92,15 @@ with col_in:
     else:
         st.markdown("**ts 范围 (°C)**")
         c1, c2, c3 = st.columns(3)
-        ts_min  = c1.number_input("最小 min", value=15, step=1)
-        ts_max  = c2.number_input("最大 max", value=22, step=1)
-        ts_step = c3.number_input("步长 step", value=1,  step=1, min_value=1)
+        ts_min  = c1.number_input("最小 min", value=15, step=0.1)
+        ts_max  = c2.number_input("最大 max", value=22, step=0.1)
+        ts_step = c3.number_input("步长 step", value=1,  step=0.1, min_value=1)
 
         st.markdown("**vs 范围 (m/s)**")
         c1, c2, c3 = st.columns(3)
-        vs_min  = c1.number_input("最小 min", value=1.0, step=0.1, format="%.1f")
-        vs_max  = c2.number_input("最大 max", value=2.0, step=0.1, format="%.1f")
-        vs_step = c3.number_input("步长 step", value=0.1, step=0.1, format="%.1f",
+        vs_min  = c1.number_input("最小 min", value=1.0, step=0.01, format="%.1f")
+        vs_max  = c2.number_input("最大 max", value=2.0, step=0.01, format="%.1f")
+        vs_step = c3.number_input("步长 step", value=0.1, step=0.01, format="%.1f",
                                   min_value=0.05)
 
     st.divider()
