@@ -271,8 +271,10 @@ with col_out:
 
         df   = pd.DataFrame(rows)
         df_q = df[df['qualified']]
-        st.success(f"✔ 合格工况 {len(df_q)} / {total}") if len(df_q) \
-            else st.warning(f"⚠️ 无合格工况（共 {total} 个）")
+        if len(df_q):
+            st.success(f"✔ 合格工况 {len(df_q)} / {total}")
+        else:
+            st.warning(f"⚠️ 无合格工况（共 {total} 个）")
 
         def make_heatmap(col, title, colorscale, zmid=None):
             pivot = df.pivot(index='vs', columns='ts', values=col)
