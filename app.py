@@ -45,10 +45,10 @@ def pmv_label(v):
 # 从高到低排列，颜色由绘图时按温度动态计算
 PROFILE_ZONES = [
     ('tc',  3.60, 'Ceiling'),
-    ('te',  3.50, 'Exhaust air'),
+    ('te',  3.50, 'Exhaust zone'),
     ('tmz', 1.80, 'Mixed zone'),
     ('toz', 0.60, 'Occupied zone'),
-    ('tnf', 0.10, 'Near-floor air'),
+    ('tnf', 0.10, 'Floor zone'),
     ('tf',  0.00, 'Floor'),
 ]
 
@@ -57,8 +57,8 @@ st.markdown(
     f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
-    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Thermal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55</p>",
+    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
+    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</p>",
     unsafe_allow_html=True,
 )
 st.divider()
