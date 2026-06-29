@@ -5,317 +5,313 @@ IJV Thermal Comfort Tool
 
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import numpy as np
 from thermal_model import ThermalModel, BatchSolver, calc_PD
 
-# ── 页面基础配置 ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="IJV Thermal Comfort Tool",
-    page_icon="🌡️",
     layout="wide",
 )
 
-st.markdown("### 🌡️ IJV Thermal Comfort Tool")
-st.caption("Impinging Jet Ventilation · Thermal Comfort Evaluation")
+# ── PMV 固定参数 ──────────────────────────────────────────────────────────────
+M    = 58.15   # 新陈代谢量 W/m²
+W    = 0.0     # 机械做功 W/m²
+I_cl = 0.124   # 服装热阻 m²K/W
+RH   = 50.0    # 相对湿度 %
+U    = 0.3     # 工作区风速 m/s
 
-# ── 侧边栏：参数输入 ──────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙️ Parameters")
-
-    mode = st.radio("Mode", ["Single Case", "Batch Solve"], horizontal=True)
-    st.divider()
-
-    # ── 房间参数 ──
-    st.subheader("Room")
-    a  = st.number_input("Length a (m)",  value=5.0, step=0.5)
-    b  = st.number_input("Width b (m)",   value=5.0, step=0.5)
-    hr = st.number_input("Height hr (m)", value=3.6, step=0.1)
-
-    st.subheader("Occupants")
-    N  = st.number_input("Number N",             value=32,   step=1)
-    Ap = st.number_input("Projected area Ap (m²)", value=2.56, step=0.1)
-    Pt = st.number_input("Heat gain Pt (W)",     value=120.0, step=10.0)
-    hp = st.number_input("Body height hp (m)",   value=1.5,  step=0.05)
-
-    st.subheader("Supply Air")
-    S  = st.number_input("Nozzle area S (m²)", value=0.170625, format="%.6f")
-
-    if mode == "Single Case":
-        ts = st.slider("Supply temp ts (°C)", 14, 24, 18)
-        vs = st.slider("Supply vel vs (m/s)", 0.5, 3.0, 1.5, step=0.1)
-    else:
-        st.markdown("**ts range (°C)**")
-        ts_min, ts_max = st.select_slider(
-            "ts", options=list(range(14, 25)), value=(15, 22), label_visibility="collapsed")
-        ts_step = st.number_input("ts step", value=1, min_value=1)
-
-        st.markdown("**vs range (m/s)**")
-        vs_min = st.number_input("vs min", value=1.0, step=0.1)
-        vs_max = st.number_input("vs max", value=2.0, step=0.1)
-        vs_step = st.number_input("vs step", value=0.1, step=0.1, format="%.1f")
-
-    # ── PMV 固定参数（不在界面显示）──
-    M    = 58.15   # 新陈代谢量 W/m²
-    W    = 0.0     # 机械做功 W/m²
-    I_cl = 0.124   # 服装热阻 m²K/W
-    RH   = 50.0    # 相对湿度 %
-    U    = 0.3     # 工作区风速 m/s
-
-    st.divider()
-    run = st.button("▶ Run", type="primary", use_container_width=True)
-
-# ── 主区域 ────────────────────────────────────────────────────────────────────
-ZONE_NAMES = ['tf','tnf','toz','tpo','tp','tmz','tpm','te','tpe','tc']
-ZONE_LABELS = {
-    'tf':'Floor','tnf':'Near-floor air','toz':'Occupied zone',
-    'tpo':'Plume (lower)','tp':'Body surface','tmz':'Mixed zone',
-    'tpm':'Plume (upper)','te':'Exhaust','tpe':'Plume (exhaust)','tc':'Ceiling'
-}
-ZONE_HEIGHT = {
-    'tf':0.0,'tnf':0.1,'toz':0.6,'tpo':0.8,'tp':0.9,
-    'tmz':1.8,'tpm':2.5,'te':3.5,'tpe':3.55,'tc':3.6
-}
-
-def pmv_color(pmv):
-    if abs(pmv) <= 0.5:  return "#2ecc71"
-    if abs(pmv) <= 1.0:  return "#f39c12"
+# ── 辅助函数 ──────────────────────────────────────────────────────────────────
+def pmv_color(v):
+    if abs(v) <= 0.5: return "#27ae60"
+    if abs(v) <= 1.0: return "#e67e22"
     return "#e74c3c"
 
-def pmv_label(pmv):
-    if abs(pmv) <= 0.5:  return "😊 Comfortable"
-    if abs(pmv) <= 1.0:  return "😐 Slightly uncomfortable"
-    return "😣 Uncomfortable"
+def pmv_label(v):
+    if abs(v) <= 0.5: return "✔ 舒适  Comfortable"
+    if abs(v) <= 1.0: return "△ 略不舒适  Slightly uncomfortable"
+    return "✘ 不舒适  Uncomfortable"
 
-# ── 单工况模式 ────────────────────────────────────────────────────────────────
-if mode == "Single Case":
-    if not run:
-        st.info("Set parameters in the sidebar and click **▶ Run**.")
-        st.stop()
+PROFILE_ZONES = [
+    ('tc',  3.60, 'Ceiling',        '#e67e22'),
+    ('te',  3.50, 'Exhaust',        '#e67e22'),
+    ('tmz', 1.80, 'Mixed zone',     '#e67e22'),
+    ('toz', 0.60, 'Occupied zone',  '#27ae60'),
+    ('tnf', 0.10, 'Near-floor air', '#2980b9'),
+    ('tf',  0.00, 'Floor',          '#2980b9'),
+]
 
-    model = ThermalModel()
-    model.set_case(a, b, hr, Ap, Pt, N, ts, vs, S, hp,
-                   M=M, W=0.0, I_cl=I_cl, U=U, RH=RH)
-    res = model.solve()
+# ── 标题 ──────────────────────────────────────────────────────────────────────
+st.markdown(
+    "<h2 style='text-align:center; margin-bottom:4px;'>"
+    "IJV Thermal Comfort Tool</h2>"
+    "<p style='text-align:center; color:gray; margin-top:0;'>"
+    "Impinging Jet Ventilation · 10-Zone Nonlinear Thermal Model</p>",
+    unsafe_allow_html=True,
+)
+st.divider()
 
-    if not res['converged']:
-        st.error("⚠️ Solver did not converge. Please adjust parameters.")
-        st.stop()
+# ── 双栏布局 ──────────────────────────────────────────────────────────────────
+col_in, col_out = st.columns([1, 2], gap="large")
 
-    toz_v = res['toz']
-    pd_v  = calc_PD(toz_v)
-    pmv_v = res['PMV']
-    ppd_v = res['PPD']
-    e_v   = res['E']
-    ach_v = model.ACH
+# ════════════════════════════════════════
+# 左栏：参数输入
+# ════════════════════════════════════════
+with col_in:
+    st.markdown("#### 参数输入 Parameters")
 
-    # ── KPI 卡片 ──
-    st.subheader("📊 Results")
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Occupied Zone Temp", f"{toz_v:.2f} °C",
-              delta=f"{toz_v-26:.2f} vs 26°C", delta_color="inverse")
-    c2.metric("PMV", f"{pmv_v:.2f}", help="ISO 7730: |PMV|≤0.5 = Category B")
-    c3.metric("PPD", f"{ppd_v:.1f} %")
-    c4.metric("Draft PD", f"{pd_v:.1f} %")
-    c5.metric("Energy Util. E", f"{e_v:.3f}")
-
-    st.markdown(f"**Comfort assessment:** {pmv_label(pmv_v)}&nbsp;&nbsp;"
-                f"&nbsp;ACH = **{ach_v:.1f} h⁻¹**")
-
-    ok = (24 <= toz_v <= 28 and 0 <= pd_v <= 20 and -0.5 <= pmv_v <= 0.5)
-    if ok:
-        st.success("✅ All criteria met (toz 24–28°C | PD ≤20% | PMV ±0.5)")
-    else:
-        fails = []
-        if not (24 <= toz_v <= 28): fails.append(f"toz={toz_v:.2f}°C out of [24,28]")
-        if not (pd_v <= 20):        fails.append(f"PD={pd_v:.1f}% > 20%")
-        if not (abs(pmv_v) <= 0.5): fails.append(f"PMV={pmv_v:.2f} out of [−0.5, 0.5]")
-        st.warning("⚠️ Failed: " + " · ".join(fails))
-
+    mode = st.radio("计算模式", ["单工况  Single Case", "批量  Batch Solve"],
+                    horizontal=True, label_visibility="collapsed")
+    single = mode.startswith("单")
     st.divider()
 
-    # ── 两栏图表 ──
-    col_left, col_right = st.columns(2)
+    # 房间
+    st.markdown("**房间 Room**")
+    c1, c2, c3 = st.columns(3)
+    a  = c1.number_input("a (m)",  value=5.0, step=0.5, format="%.1f")
+    b  = c2.number_input("b (m)",  value=5.0, step=0.5, format="%.1f")
+    hr = c3.number_input("hr (m)", value=3.6, step=0.1, format="%.1f")
 
-    # 左：温度分布图 — 只显示 6 个主要区域
-    with col_left:
-        st.subheader("Temperature Profile")
-        PROFILE_ZONES = [
-            ('tf',  0.00, 'Floor',         '#3498db'),
-            ('tnf', 0.10, 'Near-floor air','#3498db'),
-            ('toz', 0.60, 'Occupied zone', '#2ecc71'),
-            ('tmz', 1.80, 'Mixed zone',    '#f39c12'),
-            ('te',  3.50, 'Exhaust',       '#f39c12'),
-            ('tc',  3.60, 'Ceiling',       '#f39c12'),
-        ]
-        fig_profile = go.Figure()
-        fig_profile.add_trace(go.Bar(
-            x=[res[z] for z, *_ in PROFILE_ZONES],
-            y=[f"{h:.2f}m  {l}" for _, h, l, _ in PROFILE_ZONES],
-            orientation='h',
-            marker_color=[c for _, _, _, c in PROFILE_ZONES],
-            text=[f"{res[z]:.2f}°C" for z, *_ in PROFILE_ZONES],
-            textposition='outside',
-        ))
-        fig_profile.update_layout(
-            xaxis_title="Temperature (°C)",
-            yaxis_title="Height",
-            height=320,
-            margin=dict(l=10, r=70, t=20, b=40),
-            showlegend=False,
-            font=dict(size=12),
-        )
-        st.plotly_chart(fig_profile, use_container_width=True)
+    # 人员
+    st.markdown("**人员 Occupants**")
+    c1, c2, c3, c4 = st.columns(4)
+    N  = c1.number_input("N",       value=32,    step=1)
+    Ap = c2.number_input("Ap (m²)", value=2.56,  step=0.1, format="%.2f")
+    Pt = c3.number_input("Pt (W)",  value=120.0, step=10.0, format="%.0f")
+    hp = c4.number_input("hp (m)",  value=1.5,   step=0.05, format="%.2f")
 
-    # 右：PMV gauge + 各指标汇总
-    with col_right:
-        st.subheader("PMV Gauge")
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=pmv_v,
-            number={'suffix': '', 'font': {'size': 36}},
-            gauge={
-                'axis': {'range': [-3, 3], 'tickwidth': 1},
-                'bar': {'color': pmv_color(pmv_v), 'thickness': 0.3},
-                'steps': [
-                    {'range': [-3, -0.5], 'color': '#fadbd8'},
-                    {'range': [-0.5, 0.5], 'color': '#d5f5e3'},
-                    {'range': [0.5, 3],   'color': '#fdebd0'},
-                ],
-                'threshold': {
-                    'line': {'color': 'black', 'width': 3},
-                    'thickness': 0.8,
-                    'value': pmv_v,
-                }
-            }
-        ))
-        fig_gauge.update_layout(height=280, margin=dict(l=20, r=20, t=20, b=10))
-        st.plotly_chart(fig_gauge, use_container_width=True)
+    # 送风
+    st.markdown("**送风 Supply Air**")
+    S = st.number_input("送风口面积 S (m²)", value=0.170625, format="%.6f")
 
+    if single:
+        c1, c2 = st.columns(2)
+        ts = c1.number_input("ts (°C)", value=18, min_value=10, max_value=25, step=1)
+        vs = c2.number_input("vs (m/s)", value=1.5, min_value=0.5, max_value=4.0,
+                             step=0.1, format="%.1f")
+    else:
+        st.markdown("**ts 范围 (°C)**")
+        c1, c2, c3 = st.columns(3)
+        ts_min  = c1.number_input("最小 min", value=15, step=1)
+        ts_max  = c2.number_input("最大 max", value=22, step=1)
+        ts_step = c3.number_input("步长 step", value=1,  step=1, min_value=1)
+
+        st.markdown("**vs 范围 (m/s)**")
+        c1, c2, c3 = st.columns(3)
+        vs_min  = c1.number_input("最小 min", value=1.0, step=0.1, format="%.1f")
+        vs_max  = c2.number_input("最大 max", value=2.0, step=0.1, format="%.1f")
+        vs_step = c3.number_input("步长 step", value=0.1, step=0.1, format="%.1f",
+                                  min_value=0.05)
+
+    st.divider()
+    # 固定参数展示
+    with st.expander("固定参数 Fixed Parameters"):
         st.markdown(f"""
-| Parameter | Value |
-|-----------|-------|
-| Supply temp ts | {ts} °C |
-| Supply vel vs | {vs} m/s |
-| ACH | {ach_v:.2f} h⁻¹ |
-| Exhaust temp te | {res['te']:.2f} °C |
-| Floor temp tf | {res['tf']:.2f} °C |
-| Ceiling temp tc | {res['tc']:.2f} °C |
-| Body surface tp | {res['tp']:.2f} °C |
-| Energy util. E | {e_v:.3f} |
+| 参数 | 值 |
+|------|----|
+| 新陈代谢率 M | {M} W/m² |
+| 机械功 W | {W} W/m² |
+| 服装热阻 I_cl | {I_cl} m²K/W |
+| 相对湿度 RH | {RH} % |
+| 工作区风速 U | {U} m/s |
 """)
 
-# ── 批量模式 ──────────────────────────────────────────────────────────────────
-else:
+    run = st.button("▶  计算 Run", type="primary", use_container_width=True)
+
+# ════════════════════════════════════════
+# 右栏：结果输出
+# ════════════════════════════════════════
+with col_out:
     if not run:
-        st.info("Set parameter ranges in the sidebar and click **▶ Run**.")
+        st.markdown("#### 计算结果 Results")
+        st.info("请在左侧设置参数后点击 **▶ 计算 Run**")
         st.stop()
 
-    ts_list = list(range(ts_min, ts_max + 1, ts_step))
-    vs_list = [round(vs_min + i * vs_step, 2)
-               for i in range(int(round((vs_max - vs_min) / vs_step)) + 1)]
+    # ── 单工况 ────────────────────────────────────────────────────────────────
+    if single:
+        model = ThermalModel()
+        model.set_case(a, b, hr, Ap, Pt, N, ts, vs, S, hp,
+                       M=M, W=W, I_cl=I_cl, U=U, RH=RH)
+        res = model.solve()
 
-    n_cases = len(ts_list) * len(vs_list)
-    st.info(f"Running **{n_cases}** cases …")
-    progress = st.progress(0)
+        if not res['converged']:
+            st.error("⚠️ 求解未收敛，请调整参数。Solver did not converge.")
+            st.stop()
 
-    rows = []
-    total = len(ts_list) * len(vs_list)
-    idx = 0
-    for ts_i in ts_list:
-        for vs_i in vs_list:
+        toz_v = res['toz'];  pd_v = calc_PD(toz_v)
+        pmv_v = res['PMV'];  ppd_v = res['PPD']
+        e_v   = res['E'];    ach_v = model.ACH
+        ok = (24 <= toz_v <= 28 and pd_v <= 20 and abs(pmv_v) <= 0.5)
+
+        # 合格判定横幅
+        if ok:
+            st.success("✔ 符合全部舒适标准  All criteria met"
+                       "（toz 24–28°C · PD ≤20% · PMV ±0.5）")
+        else:
+            fails = []
+            if not (24 <= toz_v <= 28): fails.append(f"toz={toz_v:.2f}°C ∉ [24,28]")
+            if not (pd_v <= 20):        fails.append(f"PD={pd_v:.1f}% > 20%")
+            if not (abs(pmv_v) <= 0.5): fails.append(f"PMV={pmv_v:.2f} ∉ [−0.5,0.5]")
+            st.warning("⚠️ 不合格：" + "  ·  ".join(fails))
+
+        st.markdown(f"**{pmv_label(pmv_v)}**　　ACH = **{ach_v:.1f} h⁻¹**")
+        st.divider()
+
+        # KPI 行
+        k1, k2, k3, k4, k5 = st.columns(5)
+        def kpi(col, label, val, unit="", ok_range=None):
+            color = ""
+            if ok_range:
+                color = "color:#27ae60;" if ok_range[0]<=val<=ok_range[1] else "color:#e74c3c;"
+            col.markdown(
+                f"<div style='text-align:center'>"
+                f"<div style='font-size:12px;color:gray'>{label}</div>"
+                f"<div style='font-size:24px;font-weight:bold;{color}'>{val:.2f}{unit}</div>"
+                f"</div>", unsafe_allow_html=True)
+
+        kpi(k1, "toz (°C)",    toz_v, "°C", (24, 28))
+        kpi(k2, "PMV",         pmv_v, "",   (-0.5, 0.5))
+        kpi(k3, "PPD (%)",     ppd_v, "%")
+        kpi(k4, "Draft PD (%)",pd_v,  "%",  (0, 20))
+        kpi(k5, "Energy E",    e_v,   "")
+        st.markdown("")
+
+        # 图表双栏
+        g1, g2 = st.columns([3, 2])
+
+        with g1:
+            st.markdown("**温度分布 Temperature Profile**")
+            fig = go.Figure(go.Bar(
+                x=[res[z] for z, *_ in PROFILE_ZONES],
+                y=[f"{h:.2f}m  {l}" for _, h, l, _ in PROFILE_ZONES],
+                orientation='h',
+                marker_color=[c for _, _, _, c in PROFILE_ZONES],
+                text=[f"{res[z]:.1f}°C" for z, *_ in PROFILE_ZONES],
+                textposition='outside',
+                width=0.5,
+            ))
+            xmin = min(res[z] for z, *_ in PROFILE_ZONES) - 1
+            xmax = max(res[z] for z, *_ in PROFILE_ZONES) + 2
+            fig.update_layout(
+                xaxis=dict(title="Temperature (°C)", range=[xmin, xmax]),
+                yaxis_title="Height",
+                height=300, margin=dict(l=0, r=60, t=10, b=30),
+                showlegend=False, font=dict(size=12),
+                plot_bgcolor='white',
+            )
+            fig.update_xaxes(showgrid=True, gridcolor='#eee')
+            st.plotly_chart(fig, use_container_width=True)
+
+        with g2:
+            st.markdown("**PMV**")
+            fig2 = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=pmv_v,
+                number={'font': {'size': 32}},
+                gauge={
+                    'axis': {'range': [-3, 3], 'tickwidth': 1,
+                             'tickvals': [-3,-2,-1,0,1,2,3]},
+                    'bar': {'color': pmv_color(pmv_v), 'thickness': 0.25},
+                    'steps': [
+                        {'range': [-3,   -0.5], 'color': '#fde8e8'},
+                        {'range': [-0.5,  0.5], 'color': '#e8f8ee'},
+                        {'range': [0.5,   3  ], 'color': '#fef3e2'},
+                    ],
+                }
+            ))
+            fig2.update_layout(height=300, margin=dict(l=10, r=10, t=10, b=10))
+            st.plotly_chart(fig2, use_container_width=True)
+
+        # 详细数据表
+        with st.expander("详细数据 Detail"):
+            st.markdown(f"""
+| 参数 | 数值 |
+|------|------|
+| 送风温度 ts | {ts} °C |
+| 送风速度 vs | {vs} m/s |
+| 换气次数 ACH | {ach_v:.2f} h⁻¹ |
+| 排风温度 te | {res['te']:.2f} °C |
+| 地板温度 tf | {res['tf']:.2f} °C |
+| 天花板温度 tc | {res['tc']:.2f} °C |
+| 近地面气温 tnf | {res['tnf']:.2f} °C |
+| 混合区温度 tmz | {res['tmz']:.2f} °C |
+| 能量利用系数 E | {e_v:.3f} |
+""")
+
+    # ── 批量模式 ──────────────────────────────────────────────────────────────
+    else:
+        ts_list = list(range(int(ts_min), int(ts_max)+1, int(ts_step)))
+        vs_list = [round(vs_min + i*vs_step, 3)
+                   for i in range(int(round((vs_max-vs_min)/vs_step))+1)]
+        total = len(ts_list) * len(vs_list)
+
+        st.markdown(f"#### 批量计算  共 {total} 个工况")
+        bar = st.progress(0)
+        rows = []
+        for idx, (ts_i, vs_i) in enumerate(
+                [(t,v) for t in ts_list for v in vs_list], 1):
             model = ThermalModel()
-            model.set_case(a, b, hr, Ap, Pt, N, ts_i, vs_i, S, hp,
-                           M=M, W=0.0, I_cl=I_cl, U=U, RH=RH)
-            res = model.solve()
+            model.set_case(a,b,hr,Ap,Pt,N,ts_i,vs_i,S,hp,
+                           M=M,W=W,I_cl=I_cl,U=U,RH=RH)
+            res   = model.solve()
             toz_v = res['toz']
             pd_v  = calc_PD(toz_v) if res['converged'] else float('nan')
             pmv_v = res['PMV']
-            ok = (res['converged']
-                  and 24 <= toz_v <= 28
-                  and 0  <= pd_v  <= 20
-                  and -0.5 <= pmv_v <= 0.5)
-            rows.append({
-                'ts': ts_i, 'vs': vs_i,
-                'ACH': round(model.ACH, 2),
-                'toz': round(toz_v, 3),
-                'PMV': round(pmv_v, 3),
-                'PPD': round(res['PPD'], 2),
-                'PD':  round(pd_v,  2),
-                'E':   round(res['E'], 3),
-                'te':  round(res['te'], 3),
-                'converged': res['converged'],
-                'qualified': ok,
-            })
-            idx += 1
-            progress.progress(idx / total)
+            ok    = (res['converged'] and 24<=toz_v<=28
+                     and pd_v<=20 and abs(pmv_v)<=0.5)
+            rows.append({'ts':ts_i,'vs':vs_i,'ACH':round(model.ACH,2),
+                         'toz':round(toz_v,3),'PMV':round(pmv_v,3),
+                         'PPD':round(res['PPD'],2),'PD':round(pd_v,2),
+                         'E':round(res['E'],3),'te':round(res['te'],3),
+                         'converged':res['converged'],'qualified':ok})
+            bar.progress(idx/total)
+        bar.empty()
 
-    progress.empty()
-    df = pd.DataFrame(rows)
-    df_q = df[df['qualified']]
+        df   = pd.DataFrame(rows)
+        df_q = df[df['qualified']]
+        st.success(f"✔ 合格工况 {len(df_q)} / {total}") if len(df_q) \
+            else st.warning(f"⚠️ 无合格工况（共 {total} 个）")
 
-    st.subheader(f"📊 Batch Results — {len(df_q)}/{len(df)} cases qualified")
+        def make_heatmap(col, title, colorscale, zmid=None):
+            pivot = df.pivot(index='vs', columns='ts', values=col)
+            kw = dict(zmid=zmid) if zmid is not None else {}
+            fig = go.Figure(go.Heatmap(
+                z=pivot.values, x=pivot.columns.tolist(),
+                y=pivot.index.tolist(), colorscale=colorscale,
+                text=np.round(pivot.values,2), texttemplate="%{text}",
+                colorbar=dict(title=col), **kw))
+            for _, row in df_q.iterrows():
+                fig.add_shape(type='rect',
+                    x0=row['ts']-.45, x1=row['ts']+.45,
+                    y0=row['vs']-.45*vs_step, y1=row['vs']+.45*vs_step,
+                    line=dict(color='black', width=2))
+            fig.update_layout(
+                title=title,
+                xaxis_title="送风温度 ts (°C)",
+                yaxis_title="送风速度 vs (m/s)",
+                height=400)
+            return fig
 
-    # ── 热力图：toz ──
-    tab1, tab2, tab3, tab4 = st.tabs(["toz heatmap", "PMV heatmap", "E heatmap", "Data table"])
-
-    def make_heatmap(df, col, title, colorscale, zmid=None):
-        pivot = df.pivot(index='vs', columns='ts', values=col)
-        kw = dict(zmid=zmid) if zmid is not None else {}
-        fig = go.Figure(go.Heatmap(
-            z=pivot.values,
-            x=pivot.columns.tolist(),
-            y=pivot.index.tolist(),
-            colorscale=colorscale,
-            text=np.round(pivot.values, 2),
-            texttemplate="%{text}",
-            colorbar=dict(title=col),
-            **kw,
-        ))
-        # 标记合格区域
-        for _, row in df[df['qualified']].iterrows():
-            fig.add_shape(type='rect',
-                x0=row['ts']-0.45, x1=row['ts']+0.45,
-                y0=row['vs']-0.045, y1=row['vs']+0.045,
-                line=dict(color='black', width=2))
-        fig.update_layout(
-            title=title,
-            xaxis_title="Supply temperature ts (°C)",
-            yaxis_title="Supply velocity vs (m/s)",
-            height=420,
-        )
-        return fig
-
-    with tab1:
-        st.plotly_chart(make_heatmap(df, 'toz', 'Occupied Zone Temperature (°C)',
-                                     'RdYlGn_r'), use_container_width=True)
-        st.caption("Black border = all criteria met")
-
-    with tab2:
-        st.plotly_chart(make_heatmap(df, 'PMV', 'PMV',
-                                     'RdBu_r', zmid=0), use_container_width=True)
-
-    with tab3:
-        st.plotly_chart(make_heatmap(df, 'E', 'Energy Utilization Coefficient E',
-                                     'Blues'), use_container_width=True)
-
-    with tab4:
-        st.dataframe(
-            df.style.applymap(
-                lambda v: 'background-color: #d5f5e3' if v else 'background-color: #fadbd8',
-                subset=['qualified']
-            ),
-            use_container_width=True,
-            height=400,
-        )
-        csv = df.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("⬇️ Download CSV", csv,
-                           file_name="ijv_batch_results.csv", mime="text/csv")
+        tab1,tab2,tab3,tab4 = st.tabs(
+            ["toz 热力图","PMV 热力图","E 热力图","数据表"])
+        with tab1:
+            st.plotly_chart(make_heatmap('toz','工作区温度 toz (°C)',
+                'RdYlGn_r'), use_container_width=True)
+            st.caption("黑色边框 = 全部合格")
+        with tab2:
+            st.plotly_chart(make_heatmap('PMV','PMV',
+                'RdBu_r', zmid=0), use_container_width=True)
+        with tab3:
+            st.plotly_chart(make_heatmap('E','能量利用系数 E',
+                'Blues'), use_container_width=True)
+        with tab4:
+            st.dataframe(df, use_container_width=True, height=380)
+            csv = df.to_csv(index=False).encode('utf-8-sig')
+            st.download_button("⬇️ 下载 CSV", csv,
+                               file_name="ijv_results.csv", mime="text/csv")
 
 # ── 页脚 ──────────────────────────────────────────────────────────────────────
 st.divider()
-st.caption("IJV Thermal Comfort Tool · Built with Streamlit · "
-           "Model: 10-zone nonlinear thermal model | "
-           "Comfort: ISO 7730 Fanger PMV/PPD | "
-           "Criteria: toz 24–28°C, PD ≤20%, PMV ±0.5")
+st.caption("IJV Thermal Comfort Tool · Streamlit · "
+           "10-zone nonlinear model · ISO 7730 PMV/PPD · "
+           "Criteria: toz 24–28°C | PD ≤20% | PMV ±0.5")
