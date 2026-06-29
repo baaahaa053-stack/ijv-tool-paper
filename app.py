@@ -42,13 +42,14 @@ def pmv_label(v):
     if abs(v) <= 1.0: return "△  Slightly uncomfortable"
     return "✘  Uncomfortable"
 
+# 从高到低排列，颜色由绘图时按温度动态计算
 PROFILE_ZONES = [
-    ('tc',  3.60, 'Ceiling',        C_EXHAUST),
-    ('te',  3.50, 'Exhaust air',    C_EXHAUST),
-    ('tmz', 1.80, 'Mixed zone',     C_MIXED),
-    ('toz', 0.60, 'Occupied zone',  C_OCC),
-    ('tnf', 0.10, 'Near-floor air', C_FLOOR),
-    ('tf',  0.00, 'Floor',          C_SUPPLY),
+    ('tc',  3.60, 'Ceiling'),
+    ('te',  3.50, 'Exhaust air'),
+    ('tmz', 1.80, 'Mixed zone'),
+    ('toz', 0.60, 'Occupied zone'),
+    ('tnf', 0.10, 'Near-floor air'),
+    ('tf',  0.00, 'Floor'),
 ]
 
 # ── Page header ───────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ st.markdown(
     f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
-    f"Impinging Jet Ventilation &nbsp;·&nbsp; 10-Zone Nonlinear Thermal Model"
+    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Thermal Model"
     f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55</p>",
     unsafe_allow_html=True,
 )
@@ -210,21 +211,38 @@ with col_out:
         with g1:
             st.markdown(f"<b style='color:#003399;'>Temperature Profile</b>",
                         unsafe_allow_html=True)
+            # 温度值列表
+            _temps = [res[z] for z, *_ in PROFILE_ZONES]
+            _t_min, _t_max = min(_temps), max(_temps)
+            # 按温度从蓝(冷)到红(热)线性插值颜色
+            def _t2color(t):
+                if _t_max == _t_min:
+                    r = 0.5
+                else:
+                    r = (t - _t_min) / (_t_max - _t_min)
+                _r = int(255 * r)
+                _b = int(255 * (1 - r))
+                _g = int(80 * (1 - abs(2*r - 1)))  # 中间略带绿色过渡
+                return f"rgb({_r},{_g},{_b})"
+            _colors = [_t2color(t) for t in _temps]
+            _labels = [f"{h:.2f} m  {l}" for _, h, l in PROFILE_ZONES]
             fig = go.Figure(go.Bar(
-                x=[res[z] for z, *_ in PROFILE_ZONES],
-                y=[f"{h:.2f} m  {l}" for _, h, l, _ in PROFILE_ZONES],
+                x=_temps,
+                y=_labels,
                 orientation='h',
-                marker_color=[c for _, _, _, c in PROFILE_ZONES],
-                text=[f"{res[z]:.1f} °C" for z, *_ in PROFILE_ZONES],
+                marker_color=_colors,
+                text=[f"{t:.1f} °C" for t in _temps],
                 textposition='outside',
                 width=0.55,
             ))
-            xmin = min(res[z] for z, *_ in PROFILE_ZONES) - 1
-            xmax = max(res[z] for z, *_ in PROFILE_ZONES) + 3
+            xmin = _t_min - 1
+            xmax = _t_max + 3
             fig.update_layout(
                 xaxis=dict(title="Temperature (°C)", range=[xmin, xmax],
                            showgrid=True, gridcolor="#e8ecef"),
-                yaxis=dict(title="", showgrid=False),
+                yaxis=dict(title="", showgrid=False,
+                           categoryorder='array',
+                           categoryarray=_labels),
                 height=300,
                 margin=dict(l=0, r=70, t=10, b=30),
                 showlegend=False,
@@ -368,7 +386,7 @@ with col_out:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "IJV Thermal Comfort Tool  ·  10-zone nonlinear thermal model  ·  "
+    "IJV Thermal Comfort Tool  ·  four-zonal thermal model  ·  "
     "PMV/PPD: ISO 7730 / ASHRAE 55 Fanger equations  ·  "
     "Comfort criteria: toz 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
