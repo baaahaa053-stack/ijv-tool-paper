@@ -219,17 +219,25 @@ with col_out:
             H_35  = hr - 0.10   # exhaust zone 下边界
             H_top = hr
 
+            # 各区中心高度（地板/天花板取面上，其余取区间中点）
+            Y_floor    = 0.0
+            Y_floorz   = H_01 / 2
+            Y_occ      = (H_01 + H_20) / 2
+            Y_mixed    = (H_20 + H_35) / 2
+            Y_exhaust  = (H_35 + H_top) / 2
+            Y_ceiling  = H_top
+
             nodes = [
-                ('tf',  0.0,   res['tf'],  'T_f'),
-                ('tnf', H_01,  res['tnf'], 'T_0.1'),
-                ('toz', H_20,  res['toz'], 'T_2.0'),
-                ('tmz', H_35,  res['tmz'], 'T_3.5'),
-                ('te',  H_35,  res['te'],  'T_e'),
-                ('tc',  H_top, res['tc'],  'T_c'),
+                ('tf',  Y_floor,   res['tf'],  'T_f'),
+                ('tnf', Y_floorz,  res['tnf'], 'T_0.1'),
+                ('toz', Y_occ,     res['toz'], 'T_2.0'),
+                ('tmz', Y_mixed,   res['tmz'], 'T_3.5'),
+                ('te',  Y_exhaust, res['te'],  'T_e'),
+                ('tc',  Y_ceiling, res['tc'],  'T_c'),
             ]
             # 折线节点顺序：tf -> tnf -> toz -> tmz -> te -> tc
             line_x = [res['tf'], res['tnf'], res['toz'], res['tmz'], res['te'], res['tc']]
-            line_y = [0.0, H_01, H_20, H_35, H_35, H_top]
+            line_y = [Y_floor, Y_floorz, Y_occ, Y_mixed, Y_exhaust, Y_ceiling]
 
             t_min, t_max = min(line_x), max(line_x)
             # 蓝 → 绿 → 黄 → 红 四段渐变（对标参考图配色）
@@ -286,7 +294,7 @@ with col_out:
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
                     x=[t], y=[y], mode='markers',
-                    marker=dict(size=9, color=_t2color(t),
+                    marker=dict(size=6, color=_t2color(t),
                                line=dict(color='white', width=1.5)),
                     showlegend=False,
                     hovertext=f"{t:.2f} °C @ {y:.2f} m", hoverinfo='text',
@@ -314,9 +322,9 @@ with col_out:
                 xaxis=dict(title="Temperature (°C)",
                            range=[t_min - 1, t_max + (t_max-t_min)*0.45 + 2],
                            showgrid=True, gridcolor="#e8ecef"),
-                yaxis=dict(title="Height (m)", range=[-0.1, hr*1.06],
+                yaxis=dict(title="Height (m)", range=[-0.1, hr + 0.5],
                            showgrid=False, zeroline=False),
-                height=380,
+                height=440,
                 margin=dict(l=10, r=10, t=10, b=40),
                 showlegend=False,
                 font=dict(size=12, family="Arial"),
