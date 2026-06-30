@@ -57,7 +57,7 @@ st.markdown(
     f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
-    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Thermal Model"
+    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
     f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</p>",
     unsafe_allow_html=True,
 )
@@ -233,11 +233,12 @@ with col_out:
             fig = go.Figure()
             for z, y0, y1, label in _zone_bounds:
                 t_val = res[z]
-                # Floor/Ceiling 是边界（厚度为0），给一个最小可视厚度
-                thickness = max(y1 - y0, hr * 0.02)
+                is_boundary = z in ('tf', 'tc')
                 if z == 'tf':
+                    thickness = hr * 0.012
                     y0_draw, y1_draw = -thickness, 0.0
                 elif z == 'tc':
+                    thickness = hr * 0.012
                     y0_draw, y1_draw = hr, hr + thickness
                 else:
                     y0_draw, y1_draw = y0, y1
@@ -246,23 +247,36 @@ with col_out:
                     type='rect', x0=0, x1=t_val, y0=y0_draw, y1=y1_draw,
                     fillcolor=_color_map[z], line=dict(width=0),
                 )
-                fig.add_annotation(
-                    x=t_val, y=(y0_draw + y1_draw) / 2,
-                    text=f"  {t_val:.1f} °C", showarrow=False,
-                    xanchor='left', font=dict(size=12, color='#333'),
-                )
-                fig.add_annotation(
-                    x=0, y=(y0_draw + y1_draw) / 2,
-                    text=f"{label}  ({y0:.2f}–{y1:.2f} m)  ",
-                    showarrow=False, xanchor='right',
-                    font=dict(size=11, color='#555'),
-                )
+                y_mid = (y0_draw + y1_draw) / 2
+
+                if is_boundary:
+                    # 边界线标签放在最外侧，避免与相邻区域文字重叠
+                    y_label = y0_draw - hr*0.04 if z == 'tf' else y1_draw + hr*0.04
+                    fig.add_annotation(
+                        x=t_val, y=y_label,
+                        text=f"{label}: {t_val:.1f} °C", showarrow=False,
+                        xanchor='left', yanchor='middle',
+                        font=dict(size=11, color='#333', family='Arial'),
+                    )
+                else:
+                    fig.add_annotation(
+                        x=t_val, y=y_mid,
+                        text=f"  {t_val:.1f} °C", showarrow=False,
+                        xanchor='left', yanchor='middle',
+                        font=dict(size=12, color='#333'),
+                    )
+                    fig.add_annotation(
+                        x=0, y=y_mid,
+                        text=f"{label} ({y0:.2f}\u2013{y1:.2f} m)  ",
+                        showarrow=False, xanchor='right', yanchor='middle',
+                        font=dict(size=11, color='#555'),
+                    )
 
             xmax = max(_temps_raw) + 6
             fig.update_layout(
                 xaxis=dict(title="Temperature (°C)", range=[0, xmax],
                            showgrid=True, gridcolor="#e8ecef"),
-                yaxis=dict(title="Height (m)", range=[-hr*0.05, hr*1.08],
+                yaxis=dict(title="Height (m)", range=[-hr*0.15, hr*1.15],
                            showgrid=False, zeroline=False),
                 height=340,
                 margin=dict(l=160, r=20, t=10, b=40),
@@ -413,7 +427,7 @@ with col_out:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "IJV Thermal Comfort Tool  ·  four-zonal thermal model  ·  "
+    "IJV Thermal Comfort Tool  ·  four-zonal model  ·  "
     "PMV/PPD: ISO 7730 / ASHRAE 55-2017  ·  "
     "Comfort criteria: toz 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
