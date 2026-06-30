@@ -212,77 +212,101 @@ with col_out:
             st.markdown(f"<b style='color:#003399;'>Temperature Profile</b>",
                         unsafe_allow_html=True)
 
-            # 区域边界高度（动态依据 hr 计算）
-            # Floor(0) | Near-floor(0.1) | Occupied zone(0.1~2) |
-            # Mixed zone(2~hr-0.1) | Exhaust(hr-0.1~hr) | Ceiling(hr)
-            _zone_bounds = [
-                ('tf',  0.0,        0.0,        'Floor'),
-                ('tnf', 0.0,        0.10,       'Floor zone'),
-                ('toz', 0.10,       2.0,        'Occupied zone'),
-                ('tmz', 2.0,        hr - 0.10,  'Mixed zone'),
-                ('te',  hr - 0.10,  hr,         'Exhaust zone'),
-                ('tc',  hr,         hr,         'Ceiling'),
-            ]
+            # 关键高度节点：Floor(0) - Near-floor(0.1) - Occupied(2.0) -
+            # Mixed/Exhaust boundary(hr-0.1) - Ceiling(hr)
+            H_01  = 0.10
+            H_20  = 2.0
+            H_35  = hr - 0.10   # exhaust zone 下边界
+            H_top = hr
 
-            _temps_raw = [res[z] for z, *_t, _l in _zone_bounds]
-            _sorted = sorted(zip(_temps_raw, [z for z, *_ in _zone_bounds]),
-                             key=lambda x: x[0])
-            _six_colors = ["#0000FF","#00FFFF","#00FF00","#FFFF00","#FF8000","#FF0000"]
-            _color_map = {z: _six_colors[rank] for rank, (t, z) in enumerate(_sorted)}
+            nodes = [
+                ('tf',  0.0,   res['tf'],  'T_f'),
+                ('tnf', H_01,  res['tnf'], 'T_0.1'),
+                ('toz', H_20,  res['toz'], 'T_2.0'),
+                ('tmz', H_35,  res['tmz'], 'T_3.5'),
+                ('te',  H_35,  res['te'],  'T_e'),
+                ('tc',  H_top, res['tc'],  'T_c'),
+            ]
+            # 折线节点顺序：tf -> tnf -> toz -> tmz -> te -> tc
+            line_x = [res['tf'], res['tnf'], res['toz'], res['tmz'], res['te'], res['tc']]
+            line_y = [0.0, H_01, H_20, H_35, H_35, H_top]
+
+            t_min, t_max = min(line_x), max(line_x)
+            def _t2color(t):
+                r = 0.5 if t_max == t_min else (t - t_min) / (t_max - t_min)
+                _r = int(255 * min(1, max(0, r)))
+                _b = int(255 * min(1, max(0, 1 - r)))
+                _g = int(80 * (1 - abs(2*r - 1)))
+                return f"rgb({_r},{_g},{_b})"
 
             fig = go.Figure()
-            for z, y0, y1, label in _zone_bounds:
-                t_val = res[z]
-                is_boundary = z in ('tf', 'tc')
-                if z == 'tf':
-                    thickness = hr * 0.012
-                    y0_draw, y1_draw = -thickness, 0.0
-                elif z == 'tc':
-                    thickness = hr * 0.012
-                    y0_draw, y1_draw = hr, hr + thickness
-                else:
-                    y0_draw, y1_draw = y0, y1
 
-                fig.add_shape(
-                    type='rect', x0=0, x1=t_val, y0=y0_draw, y1=y1_draw,
-                    fillcolor=_color_map[z], line=dict(width=0),
+            # 背景分区底色（浅色，不挡字）
+            fig.add_shape(type='rect', x0=0, x1=1, y0=0, y1=H_01,
+                          xref='paper', fillcolor='#dceeff', line=dict(width=0), layer='below')
+            fig.add_shape(type='rect', x0=0, x1=1, y0=H_01, y1=H_20,
+                          xref='paper', fillcolor='#e8f9ee', line=dict(width=0), layer='below')
+            fig.add_shape(type='rect', x0=0, x1=1, y0=H_20, y1=H_35,
+                          xref='paper', fillcolor='#fffbe0', line=dict(width=0), layer='below')
+            fig.add_shape(type='rect', x0=0, x1=1, y0=H_35, y1=H_top,
+                          xref='paper', fillcolor='#ffe3e0', line=dict(width=0), layer='below')
+
+            # 渐变折线：逐段画线，颜色随两端温度渐变
+            for i in range(len(line_x) - 1):
+                seg_c0 = _t2color(line_x[i])
+                seg_c1 = _t2color(line_x[i+1])
+                n_seg = 12
+                for j in range(n_seg):
+                    f0, f1 = j/n_seg, (j+1)/n_seg
+                    xs = [line_x[i] + (line_x[i+1]-line_x[i])*f0,
+                          line_x[i] + (line_x[i+1]-line_x[i])*f1]
+                    ys = [line_y[i] + (line_y[i+1]-line_y[i])*f0,
+                          line_y[i] + (line_y[i+1]-line_y[i])*f1]
+                    fig.add_trace(go.Scatter(
+                        x=xs, y=ys, mode='lines',
+                        line=dict(color=_t2color((xs[0]+xs[1])/2), width=4),
+                        showlegend=False, hoverinfo='skip',
+                    ))
+
+            # 节点圆点 + 标注
+            for z, y, t, _ in nodes:
+                fig.add_trace(go.Scatter(
+                    x=[t], y=[y], mode='markers',
+                    marker=dict(size=9, color=_t2color(t),
+                               line=dict(color='white', width=1.5)),
+                    showlegend=False,
+                    hovertext=f"{t:.2f} °C @ {y:.2f} m", hoverinfo='text',
+                ))
+                fig.add_annotation(
+                    x=t, y=y, text=f"{t:.1f}°C", showarrow=False,
+                    yshift=12, font=dict(size=11, color='#333'),
                 )
-                y_mid = (y0_draw + y1_draw) / 2
 
-                if is_boundary:
-                    # 边界线标签放在最外侧，避免与相邻区域文字重叠
-                    y_label = y0_draw - hr*0.04 if z == 'tf' else y1_draw + hr*0.04
-                    fig.add_annotation(
-                        x=t_val, y=y_label,
-                        text=f"{label}: {t_val:.1f} °C", showarrow=False,
-                        xanchor='left', yanchor='middle',
-                        font=dict(size=11, color='#333', family='Arial'),
-                    )
-                else:
-                    fig.add_annotation(
-                        x=t_val, y=y_mid,
-                        text=f"  {t_val:.1f} °C", showarrow=False,
-                        xanchor='left', yanchor='middle',
-                        font=dict(size=12, color='#333'),
-                    )
-                    fig.add_annotation(
-                        x=0, y=y_mid,
-                        text=f"{label} ({y0:.2f}\u2013{y1:.2f} m)  ",
-                        showarrow=False, xanchor='right', yanchor='middle',
-                        font=dict(size=11, color='#555'),
-                    )
+            # 分区文字标签（放在图右侧，不挡折线）
+            zone_label_x = t_max + (t_max - t_min) * 0.18
+            for label, y0, y1 in [
+                ('Floor zone',    0.0,  H_01),
+                ('Occupied zone', H_01, H_20),
+                ('Mixed zone',    H_20, H_35),
+                ('Exhaust zone',  H_35, H_top),
+            ]:
+                fig.add_annotation(
+                    x=zone_label_x, y=(y0+y1)/2, text=label,
+                    showarrow=False, font=dict(size=11, color='#555'),
+                    xanchor='left',
+                )
 
-            xmax = max(_temps_raw) + 6
             fig.update_layout(
-                xaxis=dict(title="Temperature (°C)", range=[0, xmax],
+                xaxis=dict(title="Temperature (°C)",
+                           range=[t_min - 1, t_max + (t_max-t_min)*0.45 + 2],
                            showgrid=True, gridcolor="#e8ecef"),
-                yaxis=dict(title="Height (m)", range=[-hr*0.15, hr*1.15],
+                yaxis=dict(title="Height (m)", range=[-0.1, hr*1.06],
                            showgrid=False, zeroline=False),
-                height=340,
-                margin=dict(l=160, r=20, t=10, b=40),
+                height=380,
+                margin=dict(l=10, r=10, t=10, b=40),
                 showlegend=False,
                 font=dict(size=12, family="Arial"),
-                plot_bgcolor="#f8f9fa",
+                plot_bgcolor="white",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
             st.plotly_chart(fig, use_container_width=True)
