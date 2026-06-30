@@ -58,7 +58,7 @@ st.markdown(
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Thermal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55</p>",
+    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</p>",
     unsafe_allow_html=True,
 )
 st.divider()
@@ -394,7 +394,7 @@ with col_out:
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "IJV Thermal Comfort Tool  ·  four-zonal thermal model  ·  "
-    "PMV/PPD: ISO 7730 / ASHRAE 55 Fanger equations  ·  "
+    "IJV Thermal Comfort Tool  ·  Four-zonal thermal model  ·  "
+    "PMV/PPD: ISO 7730 / ASHRAE 55-2017  ·  "
     "Comfort criteria: toz 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
