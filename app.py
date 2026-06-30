@@ -45,10 +45,10 @@ def pmv_label(v):
 # 从高到低排列，颜色由绘图时按温度动态计算
 PROFILE_ZONES = [
     ('tc',  3.60, 'Ceiling'),
-    ('te',  3.50, 'Exhaust zone'),
+    ('te',  3.50, 'Exhaust air'),
     ('tmz', 1.80, 'Mixed zone'),
     ('toz', 0.60, 'Occupied zone'),
-    ('tnf', 0.10, 'Floor zone'),
+    ('tnf', 0.10, 'Near-floor air'),
     ('tf',  0.00, 'Floor'),
 ]
 
@@ -57,8 +57,8 @@ st.markdown(
     f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
-    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</p>",
+    f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Thermal Model"
+    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55</p>",
     unsafe_allow_html=True,
 )
 st.divider()
@@ -365,8 +365,8 @@ with col_out:
                 height=420)
             return fig
 
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "Occupied Zone Temp", "PMV", "Energy Coeff E", "Data Table"])
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+            "Occupied Zone Temp", "PMV", "PPD", "Draft PD", "Energy Coeff E", "Data Table"])
         with tab1:
             st.plotly_chart(make_heatmap('toz',
                 'Occupied Zone Temperature toz (°C)', 'RdYlGn_r'),
@@ -376,10 +376,16 @@ with col_out:
             st.plotly_chart(make_heatmap('PMV', 'PMV Index',
                 'RdBu_r', zmid=0), use_container_width=True)
         with tab3:
+            st.plotly_chart(make_heatmap('PPD', 'PPD (%)',
+                'YlOrRd'), use_container_width=True)
+        with tab4:
+            st.plotly_chart(make_heatmap('PD', 'Draft PD (%)',
+                'YlOrRd'), use_container_width=True)
+        with tab5:
             st.plotly_chart(make_heatmap('E',
                 'Energy Utilisation Coefficient E', 'Blues'),
                 use_container_width=True)
-        with tab4:
+        with tab6:
             st.dataframe(df, use_container_width=True, height=380)
             csv = df.to_csv(index=False).encode('utf-8-sig')
             st.download_button("⬇️  Download CSV", csv,
