@@ -406,9 +406,12 @@ with col_out:
             ok    = (res['converged'] and 24 <= toz_v <= 28
                      and pd_v <= 20 and abs(pmv_v) <= 0.5)
             rows.append({'ts': ts_i, 'vs': vs_i, 'ACH': round(model.ACH, 2),
-                         'toz': round(toz_v, 3), 'PMV': round(pmv_v, 3),
+                         'tf': round(res['tf'], 3), 'tnf': round(res['tnf'], 3),
+                         'toz': round(toz_v, 3), 'tmz': round(res['tmz'], 3),
+                         'te': round(res['te'], 3), 'tc': round(res['tc'], 3),
+                         'PMV': round(pmv_v, 3),
                          'PPD': round(res['PPD'], 2), 'PD': round(pd_v, 2),
-                         'E': round(res['E'], 3), 'te': round(res['te'], 3),
+                         'E': round(res['E'], 3),
                          'converged': res['converged'], 'qualified': ok})
             bar.progress(idx / total)
         bar.empty()
