@@ -232,12 +232,26 @@ with col_out:
             line_y = [0.0, H_01, H_20, H_35, H_35, H_top]
 
             t_min, t_max = min(line_x), max(line_x)
+            # 蓝 → 绿 → 黄 → 红 四段渐变（对标参考图配色）
+            _stops = [
+                (0.00, (0, 102, 255)),    # 蓝
+                (0.33, (0, 200, 90)),     # 绿
+                (0.66, (255, 220, 0)),    # 黄
+                (1.00, (230, 30, 20)),    # 红
+            ]
             def _t2color(t):
                 r = 0.5 if t_max == t_min else (t - t_min) / (t_max - t_min)
-                _r = int(255 * min(1, max(0, r)))
-                _b = int(255 * min(1, max(0, 1 - r)))
-                _g = int(80 * (1 - abs(2*r - 1)))
-                return f"rgb({_r},{_g},{_b})"
+                r = min(1, max(0, r))
+                for i in range(len(_stops) - 1):
+                    f0, c0 = _stops[i]
+                    f1, c1 = _stops[i+1]
+                    if f0 <= r <= f1:
+                        local = 0 if f1 == f0 else (r - f0) / (f1 - f0)
+                        rr = int(c0[0] + (c1[0]-c0[0]) * local)
+                        gg = int(c0[1] + (c1[1]-c0[1]) * local)
+                        bb = int(c0[2] + (c1[2]-c0[2]) * local)
+                        return f"rgb({rr},{gg},{bb})"
+                return f"rgb({_stops[-1][1][0]},{_stops[-1][1][1]},{_stops[-1][1][2]})"
 
             fig = go.Figure()
 
