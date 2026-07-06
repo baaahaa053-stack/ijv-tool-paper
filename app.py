@@ -30,6 +30,13 @@ header[data-testid="stHeader"] {
 /* 隐藏右上角的 Deploy/菜单/GitHub 图标，进一步节省空间（不需要可删除这两行） */
 #MainMenu {visibility: hidden;}
 header [data-testid="stToolbar"] {visibility: hidden;}
+
+/* 全局字体改为 Times New Roman */
+html, body, [class*="css"], .stMarkdown, .stText,
+input, textarea, select, button,
+div[data-testid="stMetricValue"], div[data-testid="stMetricLabel"] {
+    font-family: "Times New Roman", Times, serif !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -349,7 +356,7 @@ with col_out:
                 height=440,
                 margin=dict(l=10, r=10, t=10, b=40),
                 showlegend=False,
-                font=dict(size=12, family="Arial"),
+                font=dict(size=12, family="Times New Roman"),
                 plot_bgcolor="white",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
@@ -361,7 +368,7 @@ with col_out:
             fig2 = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=pmv_v,
-                number={'font': {'size': 30, 'family': 'Arial'},
+                number={'font': {'size': 30, 'family': 'Times New Roman'},
                         'valueformat': '.2f'},
                 gauge={
                     'axis': {'range': [-3, 3], 'tickwidth': 1,
@@ -385,7 +392,7 @@ with col_out:
                 height=300,
                 margin=dict(l=10, r=10, t=20, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Arial"),
+                font=dict(family="Times New Roman"),
             )
             st.plotly_chart(fig2, use_container_width=True)
 
@@ -464,7 +471,7 @@ with col_out:
                 title=dict(text=title, font=dict(size=13, color='#003399')),
                 xaxis_title="Supply temperature ts (°C)",
                 yaxis_title="Supply velocity vs (m/s)",
-                font=dict(family="Arial", size=12),
+                font=dict(family="Times New Roman", size=12),
                 paper_bgcolor="rgba(0,0,0,0)",
                 height=420)
             return fig
