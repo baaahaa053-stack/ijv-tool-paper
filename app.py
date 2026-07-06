@@ -19,7 +19,7 @@ st.markdown("""
 <style>
 /* 主容器顶部/底部内边距 */
 .block-container {
-    padding-top: 0.5rem !important;
+    padding-top: 1.2rem !important;
     padding-bottom: 1rem !important;
 }
 /* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度 */
@@ -73,14 +73,17 @@ PROFILE_ZONES = [
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(
-    f"<h2 style='text-align:center; margin-top:0; margin-bottom:2px; color:#003399;'>"
-    f"IJV Thermal Comfort Tool</h2>"
-    f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
+    f"<div style='display:flex; align-items:baseline; gap:14px; "
+    f"margin:0; padding:6px 0 8px 0;'>"
+    f"<span style='font-size:26px; font-weight:700; color:#003399; "
+    f"line-height:1;'>IJV Thermal Comfort Tool</span>"
+    f"<span style='color:{C_NEUTRAL}; font-size:13px; line-height:1;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</p>",
+    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</span>"
+    f"</div>"
+    f"<hr style='margin:0 0 12px 0; border:none; border-top:1px solid #e0e0e0;'>",
     unsafe_allow_html=True,
 )
-st.divider()
 
 # ── Two-column layout ─────────────────────────────────────────────────────────
 col_in, col_out = st.columns([1, 2], gap="large")
