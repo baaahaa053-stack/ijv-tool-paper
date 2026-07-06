@@ -328,7 +328,15 @@ with col_out:
                         showlegend=False, hoverinfo='skip',
                     ))
 
-            # 节点圆点 + 标注
+            # 节点圆点 + 标注（标注符号名，偏移方向避开折线，避免文字压线）
+            NODE_LABELS = {
+                'tf':  ("t<sub>f</sub>",  dict(xanchor='right', yanchor='top',    xshift=-9,  yshift=-8)),
+                'tnf': ("t<sub>nf</sub>", dict(xanchor='left',  yanchor='top',    xshift=9,   yshift=-8)),
+                'toz': ("t<sub>oz</sub>", dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
+                'tmz': ("t<sub>mz</sub>", dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
+                'te':  ("t<sub>e</sub>",  dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',  yanchor='bottom', xshift=9,   yshift=10)),
+            }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
                     x=[t], y=[y], mode='markers',
@@ -337,9 +345,10 @@ with col_out:
                     showlegend=False,
                     hovertext=f"{t:.2f} °C @ {y:.2f} m", hoverinfo='text',
                 ))
+                label_text, pos_kw = NODE_LABELS[z]
                 fig.add_annotation(
-                    x=t, y=y, text=f"{t:.1f}°C", showarrow=False,
-                    yshift=12, font=dict(size=11, color='#333'),
+                    x=t, y=y, text=label_text, showarrow=False,
+                    font=dict(size=12, color='#333'), **pos_kw,
                 )
 
             # 分区文字标签（放在图右侧，不挡折线）
