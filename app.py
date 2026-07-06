@@ -14,6 +14,25 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── 减少页面顶部留白 ───────────────────────────────────────────────
+st.markdown("""
+<style>
+/* 主容器顶部/底部内边距 */
+.block-container {
+    padding-top: 1.2rem !important;
+    padding-bottom: 1rem !important;
+}
+/* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度 */
+header[data-testid="stHeader"] {
+    height: 0rem;
+    min-height: 0rem;
+}
+/* 隐藏右上角的 Deploy/菜单/GitHub 图标，进一步节省空间（不需要可删除这两行） */
+#MainMenu {visibility: hidden;}
+header [data-testid="stToolbar"] {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Fixed PMV parameters ──────────────────────────────────────────────────────
 M    = 58.15   # Metabolic rate (W/m²)
 W    = 0.0     # Mechanical work (W/m²)
@@ -54,7 +73,7 @@ PROFILE_ZONES = [
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(
-    f"<h2 style='text-align:center; margin-bottom:2px; color:#003399;'>"
+    f"<h2 style='text-align:center; margin-top:0; margin-bottom:2px; color:#003399;'>"
     f"IJV Thermal Comfort Tool</h2>"
     f"<p style='text-align:center; color:{C_NEUTRAL}; margin-top:0; font-size:14px;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
