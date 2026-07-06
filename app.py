@@ -330,12 +330,12 @@ with col_out:
 
             # 节点圆点 + 标注（标注符号名，偏移方向避开折线，避免文字压线）
             NODE_LABELS = {
-                'tf':  ("t<sub>f</sub>",  dict(xanchor='right', yanchor='top',    xshift=-9,  yshift=-8)),
-                'tnf': ("t<sub>nf</sub>", dict(xanchor='left',  yanchor='top',    xshift=9,   yshift=-8)),
-                'toz': ("t<sub>oz</sub>", dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
-                'tmz': ("t<sub>mz</sub>", dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
-                'te':  ("t<sub>e</sub>",  dict(xanchor='right', yanchor='bottom', xshift=-9,  yshift=10)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',  yanchor='bottom', xshift=9,   yshift=10)),
+                'tf':  ("t<sub>f</sub>",  dict(xanchor='center', yanchor='top',    xshift=0,  yshift=-6)),
+                'tnf': ("t<sub>nf</sub>", dict(xanchor='center', yanchor='bottom', xshift=0,  yshift=6)),
+                'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
+                'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
+                'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='bottom', xshift=5,  yshift=5)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
