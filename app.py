@@ -114,16 +114,16 @@ with col_in:
     c1, c2, c3 = st.columns(3)
     a  = c1.number_input("Length a (m)",  value=5.0,  step=0.5, format="%.1f")
     b  = c2.number_input("Width b (m)",   value=5.0,  step=0.5, format="%.1f")
-    hr = c3.number_input("Height hr (m)", value=3.6,  step=0.1, format="%.1f")
+    hr = c3.number_input("Height h<sub>r</sub> (m)", value=3.6,  step=0.1, format="%.1f")
 
     # Occupants
     st.markdown(f"<b style='color:#003399;'>Occupants</b>",
                 unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     N  = c1.number_input("N",        value=32,    step=1)
-    Ap = c2.number_input("Ap (m²)",  value=2.56,  step=0.1,  format="%.2f")
-    Pt = c3.number_input("Pt (W)",   value=120.0, step=10.0, format="%.0f")
-    hp = c4.number_input("hp (m)",   value=1.5,   step=0.05, format="%.2f")
+    Ap = c2.number_input("A<sub>p</sub> (m²)",  value=2.56,  step=0.1,  format="%.2f")
+    Pt = c3.number_input("P<sub>t</sub> (W)",   value=120.0, step=10.0, format="%.0f")
+    hp = c4.number_input("h<sub>p</sub> (m)",   value=1.5,   step=0.05, format="%.2f")
 
     # Supply air
     st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
@@ -132,12 +132,12 @@ with col_in:
 
     if single:
         c1, c2 = st.columns(2)
-        ts = c1.number_input("Supply temp ts (°C)", value=18.0,
+        ts = c1.number_input("Supply temp t<sub>s</sub> (°C)", value=18.0,
                              step=0.5, format="%.2f")
-        vs = c2.number_input("Supply vel vs (m/s)", value=1.5,
+        vs = c2.number_input("Supply vel v<sub>s</sub> (m/s)", value=1.5,
                              step=0.1, format="%.2f")
     else:
-        st.markdown(f"<b style='color:#003399;'>Supply temperature ts (°C)</b>",
+        st.markdown(f"<b style='color:#003399;'>Supply temperature t<sub>s</sub> (°C)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         ts_min  = c1.number_input("Min",  value=15.0, step=0.5, format="%.2f")
@@ -145,7 +145,7 @@ with col_in:
         ts_step = c3.number_input("Step", value=1.0,  step=0.5, format="%.2f",
                                   min_value=0.01)
 
-        st.markdown(f"<b style='color:#003399;'>Supply velocity vs (m/s)</b>",
+        st.markdown(f"<b style='color:#003399;'>Supply velocity v<sub>s</sub> (m/s)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         vs_min  = c1.number_input("Min",  value=1.0, step=0.1, format="%.2f")
@@ -196,11 +196,11 @@ with col_out:
         # Pass / fail banner
         if ok:
             st.success("✔  All comfort criteria satisfied"
-                       "  (toz 24–28 °C  ·  PD ≤ 20 %  ·  PMV ± 0.5)")
+                       "  (t<sub>oz</sub> 24–28 °C  ·  PD ≤ 20 %  ·  PMV ± 0.5)")
         else:
             fails = []
             if not (24 <= toz_v <= 28):
-                fails.append(f"toz = {toz_v:.2f} °C  ∉  [24, 28]")
+                fails.append(f"t<sub>oz</sub> = {toz_v:.2f} °C  ∉  [24, 28]")
             if not (pd_v <= 20):
                 fails.append(f"PD = {pd_v:.1f} %  > 20 %")
             if not (abs(pmv_v) <= 0.5):
@@ -400,16 +400,16 @@ with col_out:
             st.markdown(f"""
 | Parameter | Value |
 |-----------|-------|
-| Supply temperature ts | {ts:.2f} °C |
-| Supply velocity vs | {vs:.2f} m/s |
+| Supply temperature t<sub>s</sub> | {ts:.2f} °C |
+| Supply velocity v<sub>s</sub> | {vs:.2f} m/s |
 | Air change rate ACH | {ach_v:.2f} h⁻¹ |
-| Exhaust zone temperature te | {res['te']:.2f} °C |
-| Floor temperature tf | {res['tf']:.2f} °C |
-| Ceiling temperature tc | {res['tc']:.2f} °C |
-| Floor zone temperature tnf | {res['tnf']:.2f} °C |
-| Mixed zone temperature tmz | {res['tmz']:.2f} °C |
+| Exhaust zone temperature t<sub>e</sub> | {res['te']:.2f} °C |
+| Floor temperature t<sub>f</sub> | {res['tf']:.2f} °C |
+| Ceiling temperature t<sub>c</sub> | {res['tc']:.2f} °C |
+| Floor zone temperature t<sub>nf</sub> | {res['tnf']:.2f} °C |
+| Mixed zone temperature t<sub>mz</sub> | {res['tmz']:.2f} °C |
 | Energy utilisation coefficient E | {e_v:.3f} |
-""")
+""", unsafe_allow_html=True)
 
     # ── Batch mode ────────────────────────────────────────────────────────────
     else:
@@ -469,8 +469,8 @@ with col_out:
                     line=dict(color='#003399', width=2))
             fig.update_layout(
                 title=dict(text=title, font=dict(size=13, color='#003399')),
-                xaxis_title="Supply temperature ts (°C)",
-                yaxis_title="Supply velocity vs (m/s)",
+                xaxis_title="Supply temperature t<sub>s</sub> (°C)",
+                yaxis_title="Supply velocity v<sub>s</sub> (m/s)",
                 font=dict(family="Times New Roman", size=12),
                 paper_bgcolor="rgba(0,0,0,0)",
                 height=420)
@@ -480,7 +480,7 @@ with col_out:
             "Occupied Zone Temp", "PMV", "PPD", "Draft PD", "Energy Coeff E", "Data Table"])
         with tab1:
             st.plotly_chart(make_heatmap('toz',
-                'Occupied Zone Temperature toz (°C)', 'RdYlGn_r'),
+                'Occupied Zone Temperature t<sub>oz</sub> (°C)', 'RdYlGn_r'),
                 use_container_width=True)
             st.caption("Dark blue border = all criteria satisfied")
         with tab2:
@@ -507,5 +507,5 @@ st.divider()
 st.caption(
     "IJV Thermal Comfort Tool  ·  four-zonal model  ·  "
     "PMV/PPD: ISO 7730 / ASHRAE 55-2017  ·  "
-    "Comfort criteria: toz 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
+    "Comfort criteria: t<sub>oz</sub> 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
