@@ -68,6 +68,15 @@ def pmv_label(v):
     if abs(v) <= 1.0: return "△  Slightly uncomfortable"
     return "✘  Uncomfortable"
 
+def labeled_input(col, label_html, key, **kwargs):
+    """Render a proper HTML label (supports <sub>, upright, correct size)
+    above a number_input whose native label is hidden."""
+    col.markdown(
+        f"<div style='font-size:14px; margin-bottom:2px; line-height:1.4;'>"
+        f"{label_html}</div>", unsafe_allow_html=True)
+    return col.number_input(label_html, key=key,
+                             label_visibility="collapsed", **kwargs)
+
 # 从高到低排列，颜色由绘图时按温度动态计算
 PROFILE_ZONES = [
     ('tc',  3.60, 'Ceiling'),
@@ -112,18 +121,18 @@ with col_in:
     st.markdown(f"<b style='color:#003399;'>Room Geometry</b>",
                 unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    a  = c1.number_input("Length a (m)",  value=5.0,  step=0.5, format="%.1f")
-    b  = c2.number_input("Width b (m)",   value=5.0,  step=0.5, format="%.1f")
-    hr = c3.number_input("Height hᵣ (m)", value=3.6,  step=0.1, format="%.1f")
+    a  = labeled_input(c1, "Length a (m)",  "in_a",  value=5.0,  step=0.5, format="%.1f")
+    b  = labeled_input(c2, "Width b (m)",   "in_b",  value=5.0,  step=0.5, format="%.1f")
+    hr = labeled_input(c3, "Height h<sub>r</sub> (m)", "in_hr", value=3.6,  step=0.1, format="%.1f")
 
     # Occupants
     st.markdown(f"<b style='color:#003399;'>Occupants</b>",
                 unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
-    N  = c1.number_input("N",        value=32,    step=1)
-    Ap = c2.number_input("Aₚ (m²)",  value=2.56,  step=0.1,  format="%.2f")
-    Pt = c3.number_input("Pₜ (W)",   value=120.0, step=10.0, format="%.0f")
-    hp = c4.number_input("hₚ (m)",   value=1.5,   step=0.05, format="%.2f")
+    N  = labeled_input(c1, "N",             "in_N",  value=32,    step=1)
+    Ap = labeled_input(c2, "A<sub>p</sub> (m²)",  "in_Ap", value=2.56,  step=0.1,  format="%.2f")
+    Pt = labeled_input(c3, "P<sub>t</sub> (W)",   "in_Pt", value=120.0, step=10.0, format="%.0f")
+    hp = labeled_input(c4, "h<sub>p</sub> (m)",   "in_hp", value=1.5,   step=0.05, format="%.2f")
 
     # Supply air
     st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
@@ -132,10 +141,10 @@ with col_in:
 
     if single:
         c1, c2 = st.columns(2)
-        ts = c1.number_input("Supply temp tₛ (°C)", value=18.0,
-                             step=0.5, format="%.2f")
-        vs = c2.number_input("Supply vel vₛ (m/s)", value=1.5,
-                             step=0.1, format="%.2f")
+        ts = labeled_input(c1, "Supply temp t<sub>s</sub> (°C)", "in_ts",
+                           value=18.0, step=0.5, format="%.2f")
+        vs = labeled_input(c2, "Supply vel v<sub>s</sub> (m/s)", "in_vs",
+                           value=1.5, step=0.1, format="%.2f")
     else:
         st.markdown(f"<b style='color:#003399;'>Supply temperature t<sub>s</sub> (°C)</b>",
                     unsafe_allow_html=True)
