@@ -19,7 +19,7 @@ st.markdown("""
 <style>
 /* 主容器顶部/底部内边距 */
 .block-container {
-    padding-top: 1.2rem !important;
+    padding-top: 0.5rem !important;
     padding-bottom: 1rem !important;
 }
 /* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度 */
