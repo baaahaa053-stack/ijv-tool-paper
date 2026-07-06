@@ -86,7 +86,7 @@ st.markdown(
     f"line-height:1;'>IJV Thermal Comfort Tool</span>"
     f"<span style='color:{C_NEUTRAL}; font-size:13px; line-height:1;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2017</span>"
+    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2023</span>"
     f"</div>"
     f"<hr style='margin:0 0 12px 0; border:none; border-top:1px solid #e0e0e0;'>",
     unsafe_allow_html=True,
@@ -114,16 +114,16 @@ with col_in:
     c1, c2, c3 = st.columns(3)
     a  = c1.number_input("Length a (m)",  value=5.0,  step=0.5, format="%.1f")
     b  = c2.number_input("Width b (m)",   value=5.0,  step=0.5, format="%.1f")
-    hr = c3.number_input("Height h<sub>r</sub> (m)", value=3.6,  step=0.1, format="%.1f")
+    hr = c3.number_input("Height $h_r$ (m)", value=3.6,  step=0.1, format="%.1f")
 
     # Occupants
     st.markdown(f"<b style='color:#003399;'>Occupants</b>",
                 unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
     N  = c1.number_input("N",        value=32,    step=1)
-    Ap = c2.number_input("A<sub>p</sub> (m²)",  value=2.56,  step=0.1,  format="%.2f")
-    Pt = c3.number_input("P<sub>t</sub> (W)",   value=120.0, step=10.0, format="%.0f")
-    hp = c4.number_input("h<sub>p</sub> (m)",   value=1.5,   step=0.05, format="%.2f")
+    Ap = c2.number_input("$A_p$ (m²)",  value=2.56,  step=0.1,  format="%.2f")
+    Pt = c3.number_input("$P_t$ (W)",   value=120.0, step=10.0, format="%.0f")
+    hp = c4.number_input("$h_p$ (m)",   value=1.5,   step=0.05, format="%.2f")
 
     # Supply air
     st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
@@ -132,9 +132,9 @@ with col_in:
 
     if single:
         c1, c2 = st.columns(2)
-        ts = c1.number_input("Supply temp t<sub>s</sub> (°C)", value=18.0,
+        ts = c1.number_input("Supply temp $t_s$ (°C)", value=18.0,
                              step=0.5, format="%.2f")
-        vs = c2.number_input("Supply vel v<sub>s</sub> (m/s)", value=1.5,
+        vs = c2.number_input("Supply vel $v_s$ (m/s)", value=1.5,
                              step=0.1, format="%.2f")
     else:
         st.markdown(f"<b style='color:#003399;'>Supply temperature t<sub>s</sub> (°C)</b>",
@@ -196,11 +196,11 @@ with col_out:
         # Pass / fail banner
         if ok:
             st.success("✔  All comfort criteria satisfied"
-                       "  (t<sub>oz</sub> 24–28 °C  ·  PD ≤ 20 %  ·  PMV ± 0.5)")
+                       "  ($t_{oz}$ 24–28 °C  ·  PD ≤ 20 %  ·  PMV ± 0.5)")
         else:
             fails = []
             if not (24 <= toz_v <= 28):
-                fails.append(f"t<sub>oz</sub> = {toz_v:.2f} °C  ∉  [24, 28]")
+                fails.append(f"$t_{{oz}}$ = {toz_v:.2f} °C  ∉  [24, 28]")
             if not (pd_v <= 20):
                 fails.append(f"PD = {pd_v:.1f} %  > 20 %")
             if not (abs(pmv_v) <= 0.5):
@@ -506,6 +506,6 @@ with col_out:
 st.divider()
 st.caption(
     "IJV Thermal Comfort Tool  ·  four-zonal model  ·  "
-    "PMV/PPD: ISO 7730 / ASHRAE 55-2017  ·  "
-    "Comfort criteria: t<sub>oz</sub> 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
+    "PMV/PPD: ISO 7730 / ASHRAE 55-2023  ·  "
+    "Comfort criteria: $t_{oz}$ 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
