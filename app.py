@@ -336,7 +336,7 @@ with col_out:
                 'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='bottom', xshift=10, yshift=6)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='middle', xshift=6,  yshift=0)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
