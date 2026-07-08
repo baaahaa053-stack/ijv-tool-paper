@@ -71,7 +71,7 @@ def pmv_color(v):
     return C_WARN
 
 def pmv_label(v):
-    if abs(v) <= 0.5: return "✔  Comfortable (ISO 7730 Category B)"
+    if abs(v) <= 0.5: return "✔  Comfortable (ISO 7730:2025 Category B)"
     if abs(v) <= 1.0: return "△  Slightly uncomfortable"
     return "✘  Uncomfortable"
 
@@ -102,7 +102,7 @@ st.markdown(
     f"line-height:1;'>IJV Thermal Comfort Tool</span>"
     f"<span style='color:{C_NEUTRAL}; font-size:13px; line-height:1;'>"
     f"Impinging Jet Ventilation &nbsp;·&nbsp; Four-Zonal Model"
-    f"&nbsp;·&nbsp; ISO 7730 / ASHRAE 55-2023</span>"
+    f"&nbsp;·&nbsp; ISO 7730:2025 / ASHRAE 55-2023</span>"
     f"</div>"
     f"<hr style='margin:0 0 12px 0; border:none; border-top:1px solid #e0e0e0;'>",
     unsafe_allow_html=True,
@@ -536,6 +536,6 @@ with col_out:
 st.divider()
 st.caption(
     "IJV Thermal Comfort Tool  ·  four-zonal model  ·  "
-    "PMV/PPD: ISO 7730 / ASHRAE 55-2023  ·  "
+    "PMV/PPD: ISO 7730:2025 / ASHRAE 55-2023  ·  "
     "Comfort criteria: toz 24–28 °C  |  Draft PD ≤ 20 %  |  PMV ∈ [−0.5, 0.5]"
 )
