@@ -233,7 +233,7 @@ with col_out:
                 f"<div style='font-size:11px; color:{C_NEUTRAL}; "
                 f"text-transform:uppercase; letter-spacing:0.5px;'>{label}</div>"
                 f"<div style='font-size:26px; font-weight:700; {color}'>"
-                f"{val:.2f}<span style='font-size:13px;'>{unit}</span></div>"
+                f"{val:.2f}<span style='font-size:26px;'>{unit}</span></div>"
                 f"</div>", unsafe_allow_html=True)
 
         kpi(k1, "Occ. Zone Temp", toz_v, " °C", (24, 28))
@@ -329,13 +329,14 @@ with col_out:
                     ))
 
             # 节点圆点 + 标注（标注符号名，偏移方向避开折线，避免文字压线）
+            # tf: 移到点的右侧、更靠近点；tc: 位置略微下移、更靠近点
             NODE_LABELS = {
-                'tf':  ("t<sub>f</sub>",  dict(xanchor='center', yanchor='top',    xshift=0,  yshift=-6)),
+                'tf':  ("t<sub>f</sub>",  dict(xanchor='left',   yanchor='middle', xshift=6,  yshift=0)),
                 'tnf': ("t<sub>nf</sub>", dict(xanchor='center', yanchor='bottom', xshift=0,  yshift=6)),
                 'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='bottom', xshift=5,  yshift=5)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='top',    xshift=5,  yshift=-2)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
@@ -386,12 +387,14 @@ with col_out:
             fig2 = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=pmv_v,
-                number={'font': {'size': 30, 'family': 'Times New Roman'},
+                domain={'x': [0.1, 0.9], 'y': [0, 1]},
+                number={'font': {'size': 26, 'family': 'Times New Roman'},
                         'valueformat': '.2f'},
                 gauge={
                     'axis': {'range': [-3, 3], 'tickwidth': 1,
                              'tickvals': [-3,-2,-1,0,1,2,3],
-                             'tickcolor': C_NEUTRAL},
+                             'tickcolor': C_NEUTRAL,
+                             'tickfont': {'size': 10}},
                     'bar': {'color': pmv_color(pmv_v), 'thickness': 0.22},
                     'bgcolor': 'white',
                     'borderwidth': 0,
@@ -407,8 +410,8 @@ with col_out:
                 }
             ))
             fig2.update_layout(
-                height=300,
-                margin=dict(l=10, r=10, t=20, b=10),
+                height=260,
+                margin=dict(l=30, r=30, t=20, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Times New Roman"),
             )
