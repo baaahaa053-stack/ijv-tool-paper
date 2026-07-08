@@ -336,7 +336,7 @@ with col_out:
                 'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='top',    xshift=5,  yshift=-2)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='bottom', xshift=10, yshift=6)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
@@ -387,14 +387,14 @@ with col_out:
             fig2 = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=pmv_v,
-                domain={'x': [0.1, 0.9], 'y': [0, 1]},
-                number={'font': {'size': 26, 'family': 'Times New Roman'},
+                domain={'x': [0.02, 0.98], 'y': [0, 1]},
+                number={'font': {'size': 36, 'family': 'Times New Roman'},
                         'valueformat': '.2f'},
                 gauge={
                     'axis': {'range': [-3, 3], 'tickwidth': 1,
                              'tickvals': [-3,-2,-1,0,1,2,3],
                              'tickcolor': C_NEUTRAL,
-                             'tickfont': {'size': 10}},
+                             'tickfont': {'size': 13}},
                     'bar': {'color': pmv_color(pmv_v), 'thickness': 0.22},
                     'bgcolor': 'white',
                     'borderwidth': 0,
@@ -410,8 +410,8 @@ with col_out:
                 }
             ))
             fig2.update_layout(
-                height=260,
-                margin=dict(l=30, r=30, t=20, b=10),
+                height=380,
+                margin=dict(l=10, r=10, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Times New Roman"),
             )
