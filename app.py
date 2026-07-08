@@ -224,7 +224,8 @@ with col_out:
 
         st.markdown(f"**{pmv_label(pmv_v)}**"
                     f"&nbsp;&nbsp;&nbsp;ACH = **{ach_v:.1f} h⁻¹**")
-        st.divider()
+        st.markdown("<hr style='margin:4px 0 12px 0; border:none; "
+                    "border-top:1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
         # KPI cards
         k1, k2, k3, k4, k5 = st.columns(5)
