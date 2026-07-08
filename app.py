@@ -19,13 +19,15 @@ st.markdown("""
 <style>
 /* 主容器顶部/底部内边距 */
 .block-container {
-    padding-top: 1.2rem !important;
+    padding-top: 0.3rem !important;
     padding-bottom: 1rem !important;
 }
-/* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度 */
+/* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度，并去掉残留的分割线 */
 header[data-testid="stHeader"] {
     height: 0rem;
     min-height: 0rem;
+    border-bottom: none !important;
+    box-shadow: none !important;
 }
 /* 隐藏右上角的 Deploy/菜单/GitHub 图标，进一步节省空间（不需要可删除这两行） */
 #MainMenu {visibility: hidden;}
