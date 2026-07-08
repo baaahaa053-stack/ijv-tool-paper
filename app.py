@@ -37,6 +37,11 @@ input, textarea, select, button,
 div[data-testid="stMetricValue"], div[data-testid="stMetricLabel"] {
     font-family: "Times New Roman", Times, serif !important;
 }
+
+/* 缩小 Mode 单选按钮下方的留白，让上下间距一致 */
+div[data-testid="stRadio"] {
+    margin-bottom: -18px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -115,7 +120,8 @@ with col_in:
     mode = st.radio("Mode", ["Single Case", "Batch Solve"],
                     horizontal=True, label_visibility="collapsed")
     single = (mode == "Single Case")
-    st.divider()
+    st.markdown("<hr style='margin:4px 0 12px 0; border:none; "
+                "border-top:1px solid #e0e0e0;'>", unsafe_allow_html=True)
 
     # Room geometry
     st.markdown(f"<b style='color:#003399;'>Room Geometry</b>",
