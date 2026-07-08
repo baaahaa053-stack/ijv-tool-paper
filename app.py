@@ -335,7 +335,7 @@ with col_out:
                 'tnf': ("t<sub>nf</sub>", dict(xanchor='center', yanchor='bottom', xshift=0,  yshift=6)),
                 'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
                 'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
+                'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=1)),
                 'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='middle', xshift=6,  yshift=0)),
             }
             for z, y, t, _ in nodes:
