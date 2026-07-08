@@ -21,9 +21,7 @@ st.markdown("""
 .block-container {
     padding-top: 0rem !important;
     padding-bottom: 1rem !important;
-    margin-top: -2.5rem !important;   /* 强制上移，消除残留顶部空白，数值可自行调节 */
 }
-
 /* Streamlit 默认头部工具栏（右上角菜单栏）压缩高度，并去掉残留的分割线 */
 header[data-testid="stHeader"] {
     height: 0rem;
