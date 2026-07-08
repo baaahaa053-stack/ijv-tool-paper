@@ -129,9 +129,9 @@ with col_in:
     st.markdown(f"<b style='color:#003399;'>Room Geometry</b>",
                 unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    a  = labeled_input(c1, "Length a (m)",  "in_a",  value=5.0,  step=0.5, format="%.1f")
-    b  = labeled_input(c2, "Width b (m)",   "in_b",  value=5.0,  step=0.5, format="%.1f")
-    hr = labeled_input(c3, "Height h<sub>r</sub> (m)", "in_hr", value=3.6,  step=0.1, format="%.1f")
+    a  = labeled_input(c1, "Length a (m)",  "in_a",  value=5.00,  step=0.5, format="%.2f")
+    b  = labeled_input(c2, "Width b (m)",   "in_b",  value=5.00,  step=0.5, format="%.2f")
+    hr = labeled_input(c3, "Height h<sub>r</sub> (m)", "in_hr", value=3.60,  step=0.1, format="%.2f")
 
     # Occupants
     st.markdown(f"<b style='color:#003399;'>Occupants</b>",
@@ -145,14 +145,14 @@ with col_in:
     # Supply air
     st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
                 unsafe_allow_html=True)
-    S = st.number_input("Nozzle area S (m²)", value=0.170625, format="%.6f")
+    S = st.number_input("Nozzle area S (m²)", value=0.175,format="%.3f")
 
     if single:
         c1, c2 = st.columns(2)
         ts = labeled_input(c1, "Supply temp t<sub>s</sub> (°C)", "in_ts",
-                           value=18.0, step=0.5, format="%.2f")
+                           value=18.00, step=0.5, format="%.2f")
         vs = labeled_input(c2, "Supply vel v<sub>s</sub> (m/s)", "in_vs",
-                           value=1.5, step=0.1, format="%.2f")
+                           value=2.00, step=0.1, format="%.2f")
     else:
         st.markdown(f"<b style='color:#003399;'>Supply temperature t<sub>s</sub> (°C)</b>",
                     unsafe_allow_html=True)
