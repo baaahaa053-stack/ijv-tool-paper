@@ -342,11 +342,11 @@ with col_out:
             # 自动跟随移动，不再使用每个点各不相同的偏移方向/偏移量。
             NODE_LABELS = {
                 'tf':  ("t<sub>f</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
-                'tnf': ("t<sub>nf</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'tnf': ("t<sub>nf</sub>", dict(xanchor='left', yanchor='top',    xshift=4, yshift=-4)),
                 'toz': ("t<sub>oz</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
                 'tmz': ("t<sub>mz</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
                 'te':  ("t<sub>e</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left', yanchor='bottom', xshift=4, yshift=4)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
