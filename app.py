@@ -337,15 +337,16 @@ with col_out:
                         showlegend=False, hoverinfo='skip',
                     ))
 
-            # 节点圆点 + 标注（标注符号名，偏移方向避开折线，避免文字压线）
-            # tf: 移到点的右侧、更靠近点；tc: 位置略微下移、更靠近点
+            # ── 节点圆点 + 标注 ──────────────────────────────────────────
+            # 标签统一紧贴在各自节点右侧 4px 处，随点的位置（温度值）
+            # 自动跟随移动，不再使用每个点各不相同的偏移方向/偏移量。
             NODE_LABELS = {
-                'tf':  ("t<sub>f</sub>",  dict(xanchor='left',   yanchor='middle', xshift=6,  yshift=0)),
-                'tnf': ("t<sub>nf</sub>", dict(xanchor='center', yanchor='bottom', xshift=0,  yshift=6)),
-                'toz': ("t<sub>oz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'tmz': ("t<sub>mz</sub>", dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=5)),
-                'te':  ("t<sub>e</sub>",  dict(xanchor='right',  yanchor='bottom', xshift=-5, yshift=1)),
-                'tc':  ("t<sub>c</sub>",  dict(xanchor='left',   yanchor='middle', xshift=6,  yshift=0)),
+                'tf':  ("t<sub>f</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'tnf': ("t<sub>nf</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'toz': ("t<sub>oz</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'tmz': ("t<sub>mz</sub>", dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'te':  ("t<sub>e</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
+                'tc':  ("t<sub>c</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
             }
             for z, y, t, _ in nodes:
                 fig.add_trace(go.Scatter(
