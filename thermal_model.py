@@ -34,18 +34,18 @@ def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH
     tr  = (tf * Ab + tc * Ab + tp * N * Ap) / (2 * Ab + N * Ap)
     pa  = calc_pa(ta, RH)
     # Eq. 7  f_cl
-    f_cl = (1.00 + 1.290 * I_cl) if I_cl > 0.078 else (1.05 + 0.645 * I_cl)
+    f_cl = (1.00 + 1.290 * I_cl) if I_cl <= 0.078 else (1.05 + 0.645 * I_cl)
     # Eqs. 5-6  迭代求 t_cl, h_c
     t_cl = 34.0
     for _ in range(100):
-        h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 1.21 * math.sqrt(U))
+        h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 12.1 * math.sqrt(U))
         t_new = (35.7 - 0.028 * MW
-                 - 0.155 * I_cl * (3.96e-8 * f_cl * ((t_cl+273)**4 - (tr+273)**4)
+                 - I_cl * (3.96e-8 * f_cl * ((t_cl+273)**4 - (tr+273)**4)
                                    + f_cl * h_c * (t_cl - ta)))
         if abs(t_new - t_cl) < 1e-6:
             break
         t_cl = t_new
-    h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 1.21 * math.sqrt(U))
+    h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 12.1 * math.sqrt(U))
     # Eq. 4  PMV
     PMV = (0.303 * math.exp(-0.036 * M) + 0.028) * (
         MW
