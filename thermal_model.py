@@ -33,18 +33,38 @@ def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH
     Ab  = a * b
     tr  = (tf * Ab + tc * Ab + tp * N * Ap) / (2 * Ab + N * Ap)
     pa  = calc_pa(ta, RH)
-    # Eq. 7  f_cl
+    # Eq. 7  f_cl  (I_cl 以 m²K/W 为单位，临界值 0.078 m²K/W ≈ 0.5 clo)
     f_cl = (1.00 + 1.290 * I_cl) if I_cl <= 0.078 else (1.05 + 0.645 * I_cl)
+
     # Eqs. 5-6  迭代求 t_cl, h_c
+    # 说明：
+    #  1) h_c 的强制对流项系数为 12.1（原代码误写为 1.21，小了 10 倍）。
+    #  2) I_cl 在本模型中始终以 m²K/W 为单位（与 f_cl 公式的单位一致），
+    #     t_cl 迭代式中不应再乘 0.155（clo→m²K/W 的换算系数），否则
+    #     等效服装热阻会被压低约 6.5 倍。
+    #  3) 直接代入迭代 (t_cl = t_new) 在真实参数下斜率 |g'| > 1，会发散
+    #     震荡并被边界截断到 PMV=+3；改用欠松弛 (relaxation) 迭代以保证
+    #     收敛稳定性，这是 ISO 7730 官方算法（及 CBE Comfort Tool 等主流
+    #     实现）的标准做法。
     t_cl = 34.0
-    for _ in range(100):
+    converged = False
+    for _ in range(150):
         h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 12.1 * math.sqrt(U))
         t_new = (35.7 - 0.028 * MW
-                 - I_cl * (3.96e-8 * f_cl * ((t_cl+273)**4 - (tr+273)**4)
-                                   + f_cl * h_c * (t_cl - ta)))
+                 - I_cl * (3.96e-8 * f_cl * ((t_cl + 273) ** 4 - (tr + 273) ** 4)
+                           + f_cl * h_c * (t_cl - ta)))
         if abs(t_new - t_cl) < 1e-6:
+            t_cl = t_new
+            converged = True
             break
-        t_cl = t_new
+        t_cl = 0.5 * (t_cl + t_new)   # 欠松弛，抑制震荡发散
+    else:
+        import warnings
+        warnings.warn(
+            f"t_cl iteration did not converge (last t_cl={t_cl:.3f}, "
+            f"ta={ta:.2f}, I_cl={I_cl}, U={U})"
+        )
+
     h_c = max(2.38 * abs(t_cl - ta) ** 0.25, 12.1 * math.sqrt(U))
     # Eq. 4  PMV
     PMV = (0.303 * math.exp(-0.036 * M) + 0.028) * (
@@ -53,7 +73,7 @@ def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH
         - 0.42  * (MW - 58.15)
         - 1.7e-5 * M * (5867 - pa)
         - 0.0014 * M * (34 - ta)
-        - 3.96e-8 * f_cl * ((t_cl+273)**4 - (tr+273)**4)
+        - 3.96e-8 * f_cl * ((t_cl + 273) ** 4 - (tr + 273) ** 4)
         - f_cl * h_c * (t_cl - ta)
     )
     # PMV 超出 Fanger 模型有效范围 [-3, 3] 时截断取边界值
