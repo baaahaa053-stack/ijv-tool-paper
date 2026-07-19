@@ -3,6 +3,7 @@ IJV Thermal Comfort Tool
 Impinging Jet Ventilation · Thermal Comfort Evaluation
 """
 
+import hmac
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -13,6 +14,73 @@ st.set_page_config(
     page_title="IJV Thermal Comfort Tool",
     layout="wide",
 )
+
+# ══════════════════════════════════════════════════════════════════
+# 登录门禁
+#
+# 账号密码配置（推荐，部署到 Streamlit Community Cloud 时）：
+# 在应用的 Settings → Secrets 里添加：
+#     [credentials]
+#     admin = "your_password_here"
+# 本地未配置 secrets.toml 时会用兜底账号 admin / admin123，
+# 正式上线前务必在 Secrets 中覆盖！
+# ══════════════════════════════════════════════════════════════════
+_DEFAULT_CREDENTIALS = {"admin": "admin123"}
+
+
+def _get_credentials():
+    try:
+        return dict(st.secrets["credentials"])
+    except Exception:
+        return _DEFAULT_CREDENTIALS
+
+
+def _verify(username, password):
+    creds = _get_credentials()
+    return username in creds and hmac.compare_digest(str(creds[username]), str(password))
+
+
+def check_password():
+    if st.session_state.get("authenticated", False):
+        return True
+
+    st.markdown(
+        "<div style='max-width:380px; margin:80px auto 0 auto;'>"
+        "<div style='text-align:center; font-size:22px; font-weight:700; "
+        "color:#003399; margin-bottom:4px;'>IJV Thermal Comfort Tool</div>"
+        "<div style='text-align:center; font-size:13px; color:#555; "
+        "margin-bottom:24px;'>请登录以继续使用</div></div>",
+        unsafe_allow_html=True,
+    )
+    col_l, col_mid, col_r = st.columns([1, 1.2, 1])
+    with col_mid:
+        with st.form("login_form"):
+            username = st.text_input("用户名", key="login_username")
+            password = st.text_input("密码", type="password", key="login_password")
+            submitted = st.form_submit_button("登录", use_container_width=True)
+        if submitted:
+            if _verify(username, password):
+                st.session_state["authenticated"] = True
+                st.session_state["current_user"] = username
+                st.rerun()
+            else:
+                st.error("用户名或密码错误，请重试。")
+    return False
+
+
+def logout_button():
+    with st.sidebar:
+        user = st.session_state.get("current_user", "")
+        if user:
+            st.caption(f"当前用户：{user}")
+        if st.button("退出登录", use_container_width=True):
+            st.session_state["authenticated"] = False
+            st.session_state.pop("current_user", None)
+            st.rerun()
+
+
+if not check_password():
+    st.stop()
 
 # ── 减少页面顶部留白 ───────────────────────────────────────────────
 st.markdown("""
@@ -46,6 +114,9 @@ div[data-testid="stRadio"] {
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ── 侧边栏：退出登录按钮 ──────────────────────────────────────────
+logout_button()
 
 # ── Fixed PMV parameters ──────────────────────────────────────────────────────
 M    = 58.15   # Metabolic rate (W/m²)
