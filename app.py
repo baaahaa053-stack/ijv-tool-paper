@@ -22,8 +22,7 @@ st.set_page_config(
 # 在应用的 Settings → Secrets 里添加：
 #     [credentials]
 #     admin = "your_password_here"
-# 本地未配置 secrets.toml 时会用兜底账号 admin / admin123，
-# 正式上线前务必在 Secrets 中覆盖！
+# 本地未配置 secrets.toml 时会用兜底账号 admin / admin123
 # ══════════════════════════════════════════════════════════════════
 _DEFAULT_CREDENTIALS = {"admin": "admin123"}
 
