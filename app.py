@@ -46,7 +46,7 @@ def check_password():
     st.markdown(
         "<div style='max-width:380px; margin:80px auto 0 auto;'>"
         "<div style='text-align:center; font-size:22px; font-weight:700; "
-        "color:#003399; margin-bottom:4px;'>IJV Thermal Comfort Tool</div>"
+        "color:#003399; margin-bottom:4px;'>基于四区模型的碰撞射流通风热舒适评估软件</div>"
         "<div style='text-align:center; font-size:13px; color:#555; "
         "margin-bottom:24px;'>请登录以继续使用</div></div>",
         unsafe_allow_html=True,
