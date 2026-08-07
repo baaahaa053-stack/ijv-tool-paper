@@ -1,5 +1,9 @@
 # IJV Thermal Comfort Tool
 
+**English summary**: An open-source Streamlit web app for rapid indoor thermal environment prediction and thermal comfort assessment in impinging jet ventilation (IJV) systems. It solves a four-zone, ten-node heat balance model and couples PMV/PPD, draught rate (PD), and energy utilization coefficient (E) calculations in a single workflow. Try it online at https://ijv-tool-84ng3jlmc2ywzx2sh9dwcu.streamlit.app/. To run locally: `pip install -r requirements.txt` then `streamlit run app.py`.
+
+---
+
 碰撞射流通风（Impinging Jet Ventilation, IJV）室内热环境快速预测与热舒适一体化评估工具。基于四区十节点热平衡模型求解室内竖向温度分层，并在同一流程中耦合完成 Fanger PMV/PPD、局部吹风感不满意率（PD）及送风能量利用系数（E）的计算。
 
 在线体验：https://ijv-tool-84ng3jlmc2ywzx2sh9dwcu.streamlit.app/
