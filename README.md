@@ -19,7 +19,7 @@
 ## 本地运行
 
 ```bash
-git clone https://github.com/baaahaa053-stack/ijv-tool.git
+git clone https://github.com/baaahaa053-stack/ijv-tool-paper.git
 cd ijv-tool
 pip install -r requirements.txt
 streamlit run app.py
