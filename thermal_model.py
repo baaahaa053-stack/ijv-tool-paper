@@ -9,8 +9,20 @@ def tandg(deg):
     return np.tan(np.deg2rad(deg))
 
 
-def calc_PD(toz):
-    return 1.38e4 * (((0.26 / (toz - 13.7)) + 0.0239) ** 2 - 8.57e-4)
+def calc_PD(toz, v, Tu=20.0):
+    """
+    吹风感不满意率 DR (%)  —— Fanger et al. 1988 / ISO 7730
+        DR = (34 - ta) * (v - 0.05)^0.62 * (0.37 * v * Tu + 3.14)
+
+    固定值说明：
+      ta = toz   局部空气温度 (℃)，取模型算出的工作区温度
+      v  = U     局部平均风速 (m/s)，与 PMV 共用 U（run_batch 中的 U_list，默认 0.3）
+      Tu = 20    湍流强度 (%)，假设值（常用范围 10~60），需要时在此处修改默认值
+      v < 0.05 m/s 时按 0.05 计；DR 限制在 [0, 100] %
+    """
+    v = max(v, 0.05)
+    DR = (34.0 - toz) * (v - 0.05) ** 0.62 * (0.37 * v * Tu + 3.14)
+    return min(max(DR, 0.0), 100.0)
 
 
 def calc_E(te, toz, ts):
@@ -257,7 +269,7 @@ class BatchSolver:
             try:
                 res   = model.solve()
                 toz_v = res['toz']
-                pd_v  = calc_PD(toz_v) if res['converged'] else float('nan')
+                pd_v  = calc_PD(toz_v, U) if res['converged'] else float('nan')   # 风速取 U，与 PMV 一致
                 pmv_v = res['PMV']
 
                 ok = (res['converged']
@@ -319,6 +331,7 @@ if __name__ == "__main__":
 
     # PMV 固定参数（坐姿 / 0.8clo / RH50% / U0.3m/s）
     # M=58.15 W/m²  W=0.0  I_cl=0.124 m²K/W  U=0.3 m/s  RH=50%
+    # 吹风感 DR 固定参数：v=U=0.3 m/s（与 PMV 共用），Tu=40 %（在 calc_PD 中设定）
 
     solver = BatchSolver()
     solver.run_batch(a_list, b_list, hr_list, Ap_list, Pt_list,
