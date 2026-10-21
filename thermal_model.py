@@ -9,7 +9,7 @@ def tandg(deg):
     return np.tan(np.deg2rad(deg))
 
 
-def calc_PD(toz, v=0.3, Tu=20.0):
+def calc_PD(toz, v=0.3, Tu=10.0):
     """
     吹风感不满意率 DR (%)  —— Fanger et al. 1988 / ISO 7730
         DR = (34 - ta) * (v - 0.05)^0.62 * (0.37 * v * Tu + 3.14)
@@ -17,7 +17,7 @@ def calc_PD(toz, v=0.3, Tu=20.0):
     固定值说明：
       ta = toz   局部空气温度 (℃)，取模型算出的工作区温度
       v  = U     局部平均风速 (m/s)，与 PMV 共用 U（run_batch 中的 U_list，默认 0.3）
-      Tu = 20    湍流强度 (%)，假设值（常用范围 10~60），需要时在此处修改默认值
+      Tu = 10    湍流强度 (%)，假设值（常用范围 10~60），需要时在此处修改默认值
       v < 0.05 m/s 时按 0.05 计；DR 限制在 [0, 100] %
     """
     v = max(v, 0.05)
@@ -106,7 +106,6 @@ class ThermalModel:
     k_tpm = k_tpe = 1.0;  g = 9.81
 
     def set_case(self, a, b, hr, Ap, Pt, N, ts, vs, S, hp,
-                 # ── PMV 附加参数 (默认: 上海夏季 / 站立轻活动 / 0.5clo) ──
                  M=58.15, W=0.0, I_cl=0.124, U=0.3, RH=50.0):
         self.a, self.b, self.hr = a, b, hr
         self.Ap, self.Pt, self.N = Ap, Pt, N
@@ -331,7 +330,7 @@ if __name__ == "__main__":
 
     # PMV 固定参数（坐姿 / 0.8clo / RH50% / U0.3m/s）
     # M=58.15 W/m²  W=0.0  I_cl=0.124 m²K/W  U=0.3 m/s  RH=50%
-    # 吹风感 DR 固定参数：v=U=0.3 m/s（与 PMV 共用），Tu=40 %（在 calc_PD 中设定）
+    # 吹风感 DR 固定参数：v=U=0.3 m/s（与 PMV 共用），Tu=10 %（在 calc_PD 中设定）
 
     solver = BatchSolver()
     solver.run_batch(a_list, b_list, hr_list, Ap_list, Pt_list,
