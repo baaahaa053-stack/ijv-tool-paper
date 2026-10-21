@@ -9,7 +9,7 @@ def tandg(deg):
     return np.tan(np.deg2rad(deg))
 
 
-def calc_PD(toz, v, Tu=20.0):
+def calc_PD(toz, v=0.3, Tu=20.0):
     """
     吹风感不满意率 DR (%)  —— Fanger et al. 1988 / ISO 7730
         DR = (34 - ta) * (v - 0.05)^0.62 * (0.37 * v * Tu + 3.14)
