@@ -341,8 +341,7 @@ with col_out:
         kpi(k3, "PPD",            ppd_v, " %",   dec=1)
         kpi(k4, "Draft PD",       pd_v,  " %",   (0, PD_LIM), dec=1)
         kpi(k5, "Energy Utilisation Index E", e_v, "", dec=3)
-        st.caption("E = (t_e − t_s)/(t_oz − t_s) is an air-temperature utilisation index, not total HVAC energy efficiency. "
-                   f"Computed in {runtime_s * 1000:.0f} ms.")
+        st.caption(f"Computed in {runtime_s * 1000:.0f} ms.")
         st.markdown("")
 
         # Charts
@@ -631,9 +630,7 @@ with col_out:
                          use_container_width=True, hide_index=True)
             top = df_q[df_q['E'] >= df_q['E'].max() - 1e-3]
             st.caption(f"Highest E among the acceptable cases: {df_q['E'].max():.3f} "
-                       f"({'unique' if len(top) == 1 else f'tied: {len(top)} cases within 0.001'}). "
-                       "E = (t_e − t_s)/(t_oz − t_s) is an air-temperature utilisation index, "
-                       "not total HVAC energy efficiency (fan power, coil load etc. are not included).")
+                       f"({'unique' if len(top) == 1 else f'tied: {len(top)} cases within 0.001'}). ")
 
         def make_heatmap(col, title, colorscale, zmid=None, dec=2):
             pivot = df.pivot(index='vs', columns='ts', values=col)
