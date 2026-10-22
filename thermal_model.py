@@ -47,8 +47,8 @@ def validate_inputs(a, b, hr, Ap, Pt, N, ts, vs, S, hp, De=0.4, ho=2.0, hnf=0.1)
                       ('N', N), ('S', S), ('vs', vs)]:
         if not (np.isfinite(val) and val > 0):
             bad.append(f"{name} must be positive (got {val})")
-    if not (np.isfinite(ts) and -10.0 <= ts <= 40.0):
-        bad.append(f"ts must be within [-10, 40] °C (got {ts})")
+    if not (np.isfinite(ts) and 15 <= ts <= 24):
+        bad.append(f"ts must be within [15, 24] °C (got {ts})")
     if not bad:
         r_ = De / (2 * tandg(12.5))
         hm = hr - 0.1
@@ -283,7 +283,7 @@ class ThermalModel:
         return residuals
 
     #  收敛判据与多初值
-    RES_TOL = 1e-3          # 残差(∞范数)收敛容差 [W]：十个方程残差量纲均为功率
+    RES_TOL = 1e-3          # 残差(∞范数)收敛容差 [W]
     NAMES = ['tf','tnf','toz','tpo','tp','tmz','tpm','te','tpe','tc']
     T0_DEFAULT = np.array([20, 20, 22, 25, 35, 25, 28, 30, 30, 25], dtype=float)
     # 备用初值：默认初值整体平移（仅在默认初值失败时依次尝试）
@@ -292,7 +292,7 @@ class ThermalModel:
     def _is_plausible(self, T):
         """
        物理合理性检查（不仅依赖 fsolve 的返回标志）：
-          - 所有温度有限，且位于 [ts-1, 60] °C 内；
+          - 所有温度有限，且位于 [ts-1, 50] °C 内；
           - 排风区温度 te > ts（Ar > 0，ln(Ar) 有定义）。
         """
         T = np.asarray(T, dtype=float)
@@ -301,7 +301,7 @@ class ThermalModel:
         te = T[self.NAMES.index('te')]
         if te <= self.ts:
             return False
-        return bool(np.all(T >= self.ts - 1.0) and np.all(T <= 60.0))
+        return bool(np.all(T >= self.ts - 1.0) and np.all(T <= 50.0))
 
     def solve(self, T0=None, multi_start=True):
         """
