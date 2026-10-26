@@ -216,23 +216,23 @@ with col_in:
     st.divider()
     #  原 “Fixed PMV Parameters” 面板改为可编辑的 “PMV Parameters”，
     #    办公静坐常取 1.2 met = 69.78 W/m²；1 met = 58.15 W/m²。
-    with st.expander("PMV Parameters (editable)"):
-        M    = st.number_input("Metabolic rate M (W/m²)", value=DEFAULT_M, step=1.0,
-                               format="%.2f", min_value=40.0,
-                               help="1.0 met = 58.15 W/m²; sedentary office work is typically ~1.2 met = 69.78 W/m²")
-        W    = st.number_input("Mechanical work W (W/m²)", value=DEFAULT_W, step=1.0,
-                               format="%.2f", min_value=0.0)
-        I_cl = st.number_input("Clothing insulation I_cl (m²K/W)", value=DEFAULT_I_cl, step=0.01,
-                               format="%.3f", min_value=0.0,
-                               help="0.155 m²K/W = 1 clo; default 0.124 m²K/W = 0.8 clo")
-        RH   = st.number_input("Relative humidity RH (%)", value=DEFAULT_RH, step=5.0,
-                               format="%.1f", min_value=0.0, max_value=100.0)
+    # PMV 参数固定为默认值，仅在折叠面板中显示，不可编辑
+    M, W, I_cl, RH, U = DEFAULT_M, DEFAULT_W, DEFAULT_I_cl, DEFAULT_RH, DEFAULT_U
 
-        U    = st.number_input("Occupied zone air speed U (m/s)", value=DEFAULT_U, step=0.05,
-                               format="%.2f", min_value=0.05,
-                               help="Used for both PMV and draft PD. Not coupled to the supply velocity in this version")
+    with st.expander("PMV Parameters (fixed)"):
+        st.markdown(
+            "| Parameter | Value |\n"
+            "|---|---|\n"
+            f"| Metabolic rate M | {DEFAULT_M:g} W/m² (1.0 met) |\n"
+            f"| Mechanical work W | {DEFAULT_W:g} W/m² |\n"
+            f"| Clothing insulation I<sub>cl</sub> | {DEFAULT_I_cl:g} m²·K/W (0.8 clo) |\n"
+            f"| Relative humidity RH | {DEFAULT_RH:g} % |\n"
+            f"| Occupied-zone air speed U | {DEFAULT_U:g} m/s |\n"
+            "| Air temperature t<sub>a</sub> | Occupied-zone temperature t<sub>oz</sub> |\n"
+            "| Turbulence intensity Tu (draft PD) | 10 % |",
+            unsafe_allow_html=True)
         st.caption("MRT: area-weighted mean of floor, ceiling and occupant-surface temperatures "
-                   "(walls / view factors are not included).")
+                   "(walls / view factors are not included). U is used for both PMV and draft PD.")
 
     # 合格判据改为用户可配置；默认值不变。
     with st.expander("Acceptance criteria (editable)"):
