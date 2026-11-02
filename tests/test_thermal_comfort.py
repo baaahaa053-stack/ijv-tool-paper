@@ -5,9 +5,11 @@ Run from the repository root:
     pip install pytest pythermalcomfort
     pytest tests/ -v
 """
+import itertools
 import os
 import sys
 
+import numpy as np
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -95,3 +97,27 @@ def test_toz_minus_ts_nearly_independent_of_ts():
         assert r["converged"]
         diffs.append(r["toz"] - ts)
     assert max(diffs) - min(diffs) < 0.01
+
+
+# ── Solver robustness (Reviewer comment 15) ──────────────────────────────────
+def test_converges_over_validated_envelope():
+    """All grid cases inside the validated ranges converge with small residuals."""
+    for ts, vs, N in itertools.product(np.arange(15.0, 19.01, 1.0),
+                                       np.round(np.arange(1.6, 2.81, 0.3), 2),
+                                       [32, 48, 60]):
+        m = ThermalModel()
+        m.set_case(5.0, 5.0, 3.6, 2.56, 120.0, N, ts, vs, 0.175, 1.5)
+        r = m.solve()
+        assert r["converged"], (ts, vs, N)
+        assert r["res_norm"] < 1e-3, (ts, vs, N)
+
+
+def test_unique_root_for_different_initial_guesses():
+    """Different initial guesses reach the same root (no multiple roots)."""
+    m = ThermalModel()
+    m.set_case(5.0, 5.0, 3.6, 2.56, 120.0, 32, 17.0, 2.2, 0.175, 1.5)
+    ref = m.solve()
+    for shift in (-6.0, -3.0, 3.0, 6.0, 10.0):
+        r = m.solve(T0=m.T0_DEFAULT + shift, multi_start=False)
+        assert r["converged"]
+        assert r["toz"] == pytest.approx(ref["toz"], abs=1e-3)
