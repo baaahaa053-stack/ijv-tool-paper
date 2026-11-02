@@ -3,14 +3,15 @@ IJV Thermal Comfort Tool
 Impinging Jet Ventilation · Thermal Comfort Evaluation
 """
 
+import re
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import time   #  界面显示实测计算时间
 from thermal_model import (ThermalModel, BatchSolver, calc_PD,
-                           check_validity_domain, CALIB_RANGE,   
-                           pmv_category)                          
+                           check_validity_domain, CALIB_RANGE,
+                           pmv_category)
 
 #  图片高分辨率下载：绘图工具栏的“下载图片”导出 3 倍分辨率 PNG
 PLOT_CONFIG = {'toImageButtonOptions': {'format': 'png', 'scale': 3}}
@@ -54,13 +55,16 @@ div[data-testid="stRadio"] {
 """, unsafe_allow_html=True)
 
 # ── Default PMV parameters ────────────────────────────────────────────────────
-#  原“固定参数”改为默认值，并在左侧面板中可由用户编辑
-#   （M、W、I_cl、RH、U 的实际取值见左侧 “PMV Parameters” 面板）。默认值保持不变。
 DEFAULT_M    = 58.15   # Metabolic rate (W/m²) = 1.0 met
 DEFAULT_W    = 0.0     # Mechanical work (W/m²)
 DEFAULT_I_cl = 0.124   # Clothing insulation (m²K/W) = 0.8 clo
 DEFAULT_RH   = 50.0    # Relative humidity (%)
 DEFAULT_U    = 0.3     # Air speed in occupied zone (m/s)
+
+# ── 固定的合格判据（不在页面左侧显示、不可编辑）──────────────────────────────
+TOZ_LO, TOZ_HI = 24.0, 28.0   # 工作区温度 (°C)
+PD_LIM         = 20.0         # 吹风感不满意率上限 (%)
+PMV_LIM        = 0.5          # |PMV| 上限 (ASHRAE 55 / ISO 7730 Category B)
 
 # ── Colour palette (engineering psychrometric chart convention) ──────────────
 C_SUPPLY  = "#0000FF"   # pure blue   — supply / cold
@@ -74,18 +78,12 @@ C_NEUTRAL = "#555555"   # gray  — neutral
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 def pmv_color(v):
-    #  增加 ISO 7730 Category C（|PMV| ≤ 0.7）这一档
     if abs(v) <= 0.5: return C_OK
     if abs(v) <= 0.7: return "#c8b400"
     if abs(v) <= 1.0: return "#e67e22"
     return C_WARN
 
 def pmv_label(v):
-    #  统一一套标签与阈值，同时给出 ASHRAE 55 与 ISO 7730 等级：
-    #   |PMV| ≤ 0.5 : Comfortable        （ASHRAE 55 满足；ISO 7730 Cat. A 或 B）
-    #   0.5–0.7     : Acceptable (ISO Cat. C only)（ASHRAE 55 不满足）
-    #   0.7–1.0     : Slightly uncomfortable
-    #   > 1.0       : Uncomfortable
     ashrae_ok, iso = pmv_category(v)
     if abs(v) <= 0.5:
         return f"✔  Comfortable (ASHRAE 55 ✓ · ISO 7730:2025 Category {iso})"
@@ -103,15 +101,43 @@ def labeled_input(col, label_html, key, **kwargs):
     return col.number_input(label_html, key=key,
                              label_visibility="collapsed", **kwargs)
 
-# 从高到低排列，颜色由绘图时按温度动态计算
-PROFILE_ZONES = [
-    ('tc',  3.60, 'Ceiling'),
-    ('te',  3.50, 'Exhaust zone'),
-    ('tmz', 1.80, 'Mixed zone'),
-    ('toz', 0.60, 'Occupied zone'),
-    ('tnf', 0.10, 'Floor zone'),
-    ('tf',  0.00, 'Floor'),
-]
+# ── 变量名一律用下角标显示（页面上不出现下划线）──────────────────────────────
+SUB = {  # 模型/校验消息中的变量名 → HTML 下角标写法
+    'ts': 't<sub>s</sub>', 'vs': 'v<sub>s</sub>', 'hp': 'h<sub>p</sub>',
+    'hr': 'h<sub>r</sub>', 'Ap': 'A<sub>p</sub>', 'Pt': 'P<sub>t</sub>',
+}
+_SUB_RE = re.compile(r'\b(' + '|'.join(SUB) + r')\b')
+
+def pretty(msg):
+    """把 thermal_model 返回的消息里的变量名换成带下角标的 HTML。"""
+    return _SUB_RE.sub(lambda m: SUB[m.group(1)], str(msg))
+
+_BANNER = {   # (背景, 文字色) —— 与 Streamlit 自带提示框配色一致
+    'success': ("rgba(33,195,84,0.12)",  "#177233"),
+    'warning': ("rgba(255,227,18,0.18)", "#7a5a00"),
+    'error':   ("rgba(255,43,43,0.10)",  "#8a2a2a"),
+    'info':    ("rgba(28,131,225,0.10)", "#0f4c81"),
+}
+
+def banner(kind, html):
+    """与 st.success/st.warning 外观相近，但支持 HTML 下角标。"""
+    bg, fg = _BANNER[kind]
+    st.markdown(
+        f"<div style='background:{bg}; color:{fg}; padding:12px 16px; "
+        f"border-radius:8px; margin:0 0 12px 0; font-size:15px; "
+        f"line-height:1.5;'>{html}</div>", unsafe_allow_html=True)
+
+def bullets(msgs):
+    return "<br>".join("• " + pretty(m) for m in msgs)
+
+# 数据表列名（表格不支持下角标，用不含下划线的显示名）
+COLMAP = {'ts': 'ts (°C)', 'vs': 'vs (m/s)', 'ACH': 'ACH (h⁻¹)',
+          'tf': 'tf (°C)', 'tnf': 'tnf (°C)', 'toz': 'toz (°C)',
+          'tmz': 'tmz (°C)', 'te': 'te (°C)', 'tc': 'tc (°C)',
+          'PMV': 'PMV', 'PPD': 'PPD (%)', 'PD': 'Draft PD (%)', 'E': 'E',
+          'converged': 'converged', 'qualified': 'qualified',
+          'extrapolated': 'extrapolated',
+          'res_norm': 'residual (W)', 'runtime_s': 'runtime (s)'}
 
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(
@@ -138,8 +164,6 @@ with col_in:
                 f"color:#003399;'>Input Parameters</span>",
                 unsafe_allow_html=True)
 
-    #  “Batch Solve/批量优化”改称 “Batch Screening（批量参数筛选）”：
-    #   仅对送风温度×风速做笛卡尔积扫描并按判据筛选，并非优化算法
     mode = st.radio("Mode", ["Single Case", "Batch Screening"],
                     horizontal=True, label_visibility="collapsed")
     single = (mode == "Single Case")
@@ -150,8 +174,6 @@ with col_in:
     st.markdown(f"<b style='color:#003399;'>Room Geometry</b>",
                 unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    #  各输入增加下限（min_value），避免零/负值进入分母和平方根；
-    #    通过 help 提示给出符号含义。
     a  = labeled_input(c1, "Length a (m)",  "in_a",  value=5.00,  step=0.5, format="%.2f",
                        min_value=0.5, help="Room length")
     b  = labeled_input(c2, "Width b (m)",   "in_b",  value=5.00,  step=0.5, format="%.2f",
@@ -163,7 +185,7 @@ with col_in:
     st.markdown(f"<b style='color:#003399;'>Occupants</b>",
                 unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
-    
+
     N  = labeled_input(c1, "N",             "in_N",  value=32,    step=1, min_value=1,
                        help="Number of occupants")
     Ap = labeled_input(c2, "A<sub>p</sub> (m²)",  "in_Ap", value=2.56,  step=0.1,  format="%.2f",
@@ -182,11 +204,10 @@ with col_in:
     st.markdown(f"<b style='color:#003399;'>Supply Air</b>",
                 unsafe_allow_html=True)
     S = st.number_input("Nozzle area S (m²)", value=0.175, format="%.3f",
-                        min_value=0.001, help="Total supply nozzle area")  
+                        min_value=0.001, help="Total supply nozzle area")
 
     if single:
         c1, c2 = st.columns(2)
-        #  在标签中提示已验证范围；超出范围时右侧会给出警告/阻止计算
         ts = labeled_input(c1, "Supply temp t<sub>s</sub> (°C)", "in_ts",
                            value=18.00, step=0.5, format="%.2f", min_value=-10.0, max_value=40.0,
                            help=f"Supply air temperature. Validated range: "
@@ -199,23 +220,21 @@ with col_in:
         st.markdown(f"<b style='color:#003399;'>Supply temperature t<sub>s</sub> (°C)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
-        #  批量默认扫描范围改为标定范围内
-        ts_min  = c1.number_input("Min",  value=15.0, step=0.5, format="%.2f")
-        ts_max  = c2.number_input("Max",  value=19.0, step=0.5, format="%.2f")
+        #  批量示例范围：ts 15–22 °C（8 档）× vs 1.0–2.0 m/s（11 档）= 88 个工况
+        ts_min  = c1.number_input("Min",  value=15.0, step=0.5, format="%.2f", key="ts_min")
+        ts_max  = c2.number_input("Max",  value=22.0, step=0.5, format="%.2f", key="ts_max")
         ts_step = c3.number_input("Step", value=1.0,  step=0.5, format="%.2f",
-                                  min_value=0.01)
+                                  min_value=0.01, key="ts_step")
 
         st.markdown(f"<b style='color:#003399;'>Supply velocity v<sub>s</sub> (m/s)</b>",
                     unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
-        vs_min  = c1.number_input("Min",  value=1.6, step=0.1, format="%.2f", min_value=0.1)
-        vs_max  = c2.number_input("Max",  value=2.8, step=0.1, format="%.2f", min_value=0.1)
-        vs_step = c3.number_input("Step", value=0.3, step=0.1, format="%.2f",
-                                  min_value=0.01)
+        vs_min  = c1.number_input("Min",  value=1.0, step=0.1, format="%.2f", min_value=0.1, key="vs_min")
+        vs_max  = c2.number_input("Max",  value=2.0, step=0.1, format="%.2f", min_value=0.1, key="vs_max")
+        vs_step = c3.number_input("Step", value=0.1, step=0.1, format="%.2f",
+                                  min_value=0.01, key="vs_step")
 
     st.divider()
-    #  原 “Fixed PMV Parameters” 面板改为可编辑的 “PMV Parameters”，
-    #    办公静坐常取 1.2 met = 69.78 W/m²；1 met = 58.15 W/m²。
     # PMV 参数固定为默认值，仅在折叠面板中显示，不可编辑
     M, W, I_cl, RH, U = DEFAULT_M, DEFAULT_W, DEFAULT_I_cl, DEFAULT_RH, DEFAULT_U
 
@@ -234,19 +253,10 @@ with col_in:
         st.caption("MRT: area-weighted mean of floor, ceiling and occupant-surface temperatures "
                    "(walls / view factors are not included). U is used for both PMV and draft PD.")
 
-    # 合格判据改为用户可配置；默认值不变。
-    with st.expander("Acceptance criteria (editable)"):
-        c1, c2 = st.columns(2)
-        TOZ_LO  = c1.number_input("t_oz min (°C)", value=24.0, step=0.5, format="%.1f")
-        TOZ_HI  = c2.number_input("t_oz max (°C)", value=28.0, step=0.5, format="%.1f")
-        c1, c2 = st.columns(2)
-        PD_LIM  = c1.number_input("Draft PD max (%)", value=20.0, step=1.0, format="%.1f", min_value=0.0)
-        PMV_LIM = c2.number_input("|PMV| max", value=0.5, step=0.1, format="%.2f", min_value=0.0,
-                                  help="0.5: ASHRAE 55 / ISO 7730 Category B; 0.7: ISO 7730 Category C")
+    #  合格判据已固定（见文件顶部常量），不再在左侧显示
 
-    #  是否允许在标定范围之外计算（默认不允许；允许时结果带“外推”标记）
     allow_extrap = st.checkbox("Allow extrapolation outside the validated range", value=False,
-                               help="Validated: t_s 15–19 °C, v_s 1.6–2.8 m/s, "
+                               help="Validated: supply temperature 15–19 °C, supply velocity 1.6–2.8 m/s, "
                                     "occupant density 1.28–2.4 persons/m². Results outside this range are NOT validated.")
 
     run = st.button("▶  Calculate", type="primary", use_container_width=True)
@@ -263,21 +273,17 @@ with col_out:
 
     # ── Single case ───────────────────────────────────────────────────────────
     if single:
-        #   范围检查：超出标定范围时给出明确警告；
-        #   未勾选 “Allow extrapolation” 时直接阻止计算
         dom_msgs = check_validity_domain(a, b, N, ts, vs)
         if dom_msgs and not allow_extrap:
-            st.error("⛔ Input outside the validated range — calculation blocked. "
-                     "Tick **Allow extrapolation** in the left panel to run it anyway.")
-            for m_ in dom_msgs:
-                st.markdown(f"- {m_}")
+            banner('error', "⛔ Input outside the validated range — calculation blocked. "
+                            "Tick <b>Allow extrapolation</b> in the left panel to run it anyway."
+                            "<br>" + bullets(dom_msgs))
             st.stop()
         if dom_msgs:
-            st.warning("⚠️ Extrapolation — results below are NOT validated:\n\n"
-                       + "\n".join(f"- {m_}" for m_ in dom_msgs))
+            banner('warning', "⚠️ Extrapolation — results below are NOT validated:<br>"
+                              + bullets(dom_msgs))
 
         model = ThermalModel()
-        #  set_case 内含输入校验，非法输入给出明确报错而不是静默计算
         try:
             t0_ = time.perf_counter()               #  计时
             model.set_case(a, b, hr, Ap, Pt, N, ts, vs, S, hp,
@@ -285,34 +291,32 @@ with col_out:
             res = model.solve()
             runtime_s = time.perf_counter() - t0_
         except ValueError as err:
-            st.error(f"⛔ Invalid input: {err}")
+            banner('error', "⛔ Invalid input: " + pretty(err))
             st.stop()
 
-        #  收敛判据包含残差范数与物理合理性（见 thermal_model.solve）
         if not res['converged']:
-            st.error("⚠️ Solver did not converge (or the solution is physically implausible). "
-                     "Please adjust the input parameters.")
+            banner('error', "⚠️ Solver did not converge (or the solution is physically implausible). "
+                            "Please adjust the input parameters.")
             st.stop()
 
-        #  PD 显式传入风速 U（与 PMV 一致，与 run_batch 保持一致）
         toz_v = res['toz'];  pd_v  = calc_PD(toz_v, U)
         pmv_v = res['PMV'];  ppd_v = res['PPD']
         e_v   = res['E'];    ach_v = model.ACH
-        #  判据取自左侧 “Acceptance criteria” 面板（默认 24–28 °C / 20 % / 0.5）
         ok = (TOZ_LO <= toz_v <= TOZ_HI and pd_v <= PD_LIM and abs(pmv_v) <= PMV_LIM)
         # Pass / fail banner
         if ok:
-            st.success("✔  All comfort criteria satisfied: "
-                       f"t_oz {TOZ_LO:g}–{TOZ_HI:g} °C; PD ≤ {PD_LIM:g} %; |PMV| ≤ {PMV_LIM:g}.")
+            banner('success', "✔  All comfort criteria satisfied: "
+                              f"t<sub>oz</sub> {TOZ_LO:g}–{TOZ_HI:g} °C; PD ≤ {PD_LIM:g} %; "
+                              f"|PMV| ≤ {PMV_LIM:g}.")
         else:
             fails = []
             if not (TOZ_LO <= toz_v <= TOZ_HI):
-                fails.append(f"t_oz = {toz_v:.1f} °C  ∉  [{TOZ_LO:g}, {TOZ_HI:g}]")   # 温度 1 位小数
+                fails.append(f"t<sub>oz</sub> = {toz_v:.1f} °C  ∉  [{TOZ_LO:g}, {TOZ_HI:g}]")
             if not (pd_v <= PD_LIM):
-                fails.append(f"PD = {pd_v:.1f} %  > {PD_LIM:g} %")
+                fails.append(f"PD = {pd_v:.1f} %  &gt; {PD_LIM:g} %")
             if not (abs(pmv_v) <= PMV_LIM):
                 fails.append(f"PMV = {pmv_v:.2f}  ∉  [−{PMV_LIM:g}, {PMV_LIM:g}]")
-            st.warning("⚠️  Criteria not met:  " + "   ·   ".join(fails))
+            banner('warning', "⚠️  Criteria not met:  " + "   ·   ".join(fails))
 
         st.markdown(f"**{pmv_label(pmv_v)}**"
                     f"&nbsp;&nbsp;&nbsp;ACH = **{ach_v:.1f} h⁻¹**")
@@ -321,7 +325,6 @@ with col_out:
 
         # KPI cards
         k1, k2, k3, k4, k5 = st.columns(5)
-        #  温度统一 1 位小数；E 统一 3 位小数；其余 2 位（由 dec 控制）
         def kpi(col, label, val, unit="", ok_range=None, dec=2):
             if ok_range:
                 color = (f"color:{C_OK};" if ok_range[0] <= val <= ok_range[1]
@@ -348,18 +351,14 @@ with col_out:
         g1, g2 = st.columns([3, 2])
 
         with g1:
-            # 改称 “Zonal Temperature Profile”，并说明折线仅为节点间的视觉引导
             st.markdown(f"<b style='color:#003399;'>Zonal Temperature Profile</b>",
                         unsafe_allow_html=True)
 
-            # 关键高度节点：Floor(0) - Near-floor(0.1) - Occupied(2.0) -
-            # Mixed/Exhaust boundary(hr-0.1) - Ceiling(hr)
             H_01  = 0.10
             H_20  = 2.0
             H_35  = hr - 0.10   # exhaust zone 下边界
             H_top = hr
 
-            # 各区中心高度（地板/天花板取面上，其余取区间中点）
             Y_floor    = 0.0
             Y_floorz   = H_01 / 2
             Y_occ      = (H_01 + H_20) / 2
@@ -375,12 +374,10 @@ with col_out:
                 ('te',  Y_exhaust, res['te'],  'T_e'),
                 ('tc',  Y_ceiling, res['tc'],  'T_c'),
             ]
-            # 折线节点顺序：tf -> tnf -> toz -> tmz -> te -> tc
             line_x = [res['tf'], res['tnf'], res['toz'], res['tmz'], res['te'], res['tc']]
             line_y = [Y_floor, Y_floorz, Y_occ, Y_mixed, Y_exhaust, Y_ceiling]
 
             t_min, t_max = min(line_x), max(line_x)
-            # 蓝 → 绿 → 黄 → 红 四段渐变（对标参考图配色）
             _stops = [
                 (0.00, (0, 102, 255)),    # 蓝
                 (0.33, (0, 200, 90)),     # 绿
@@ -403,7 +400,6 @@ with col_out:
 
             fig = go.Figure()
 
-            # 背景分区底色（浅色，不挡字）
             fig.add_shape(type='rect', x0=0, x1=1, y0=0, y1=H_01,
                           xref='paper', fillcolor='#dceeff', line=dict(width=0), layer='below')
             fig.add_shape(type='rect', x0=0, x1=1, y0=H_01, y1=H_20,
@@ -413,10 +409,7 @@ with col_out:
             fig.add_shape(type='rect', x0=0, x1=1, y0=H_35, y1=H_top,
                           xref='paper', fillcolor='#ffe3e0', line=dict(width=0), layer='below')
 
-            # 渐变折线：逐段画线，颜色随两端温度渐变
             for i in range(len(line_x) - 1):
-                seg_c0 = _t2color(line_x[i])
-                seg_c1 = _t2color(line_x[i+1])
                 n_seg = 12
                 for j in range(n_seg):
                     f0, f1 = j/n_seg, (j+1)/n_seg
@@ -430,9 +423,6 @@ with col_out:
                         showlegend=False, hoverinfo='skip',
                     ))
 
-            # ── 节点圆点 + 标注 ──────────────────────────────────────────
-            # 标签统一紧贴在各自节点右侧 4px 处，随点的位置（温度值）
-            # 自动跟随移动，不再使用每个点各不相同的偏移方向/偏移量。
             NODE_LABELS = {
                 'tf':  ("t<sub>f</sub>",  dict(xanchor='left', yanchor='middle', xshift=4, yshift=0)),
                 'tnf': ("t<sub>nf</sub>", dict(xanchor='left', yanchor='top',    xshift=4, yshift=-4)),
@@ -447,7 +437,7 @@ with col_out:
                     marker=dict(size=6, color=_t2color(t),
                                line=dict(color='white', width=1.5)),
                     showlegend=False,
-                    hovertext=f"{t:.1f} °C @ {y:.2f} m", hoverinfo='text',   #  温度 1 位小数
+                    hovertext=f"{t:.1f} °C @ {y:.2f} m", hoverinfo='text',
                 ))
                 label_text, pos_kw = NODE_LABELS[z]
                 fig.add_annotation(
@@ -455,7 +445,6 @@ with col_out:
                     font=dict(size=12, color='#333'), **pos_kw,
                 )
 
-            # 分区文字标签（放在图右侧，不挡折线）
             zone_label_x = t_max + (t_max - t_min) * 0.18
             for label, y0, y1 in [
                 ('Floor zone',    0.0,  H_01),
@@ -482,9 +471,9 @@ with col_out:
                 plot_bgcolor="white",
                 paper_bgcolor="rgba(0,0,0,0)",
             )
-            st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)   #  高分辨率导出
+            st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
             st.caption("Markers are discrete zonal node temperatures; the connecting lines are "
-                       "visual guides only, not a continuously resolved vertical temperature field.")   
+                       "visual guides only, not a continuously resolved vertical temperature field.")
 
         with g2:
             st.markdown(f"<b style='color:#003399;'>PMV Index</b>",
@@ -503,7 +492,6 @@ with col_out:
                     'bar': {'color': pmv_color(pmv_v), 'thickness': 0.22},
                     'bgcolor': 'white',
                     'borderwidth': 0,
-                    #  同时标出 ASHRAE 55（±0.5）与 ISO 7730 Category C（±0.7）范围
                     'steps': [
                         {'range': [-3,   -0.7], 'color': '#d6eaf8'},
                         {'range': [-0.7, -0.5], 'color': '#eef5d0'},
@@ -525,7 +513,7 @@ with col_out:
             )
             st.plotly_chart(fig2, use_container_width=True, config=PLOT_CONFIG)
             st.caption("Green: ASHRAE 55 (|PMV| ≤ 0.5, = ISO 7730 Cat. B); "
-                       "yellow-green: ISO 7730 Cat. C only (|PMV| ≤ 0.7).")   
+                       "yellow-green: ISO 7730 Cat. C only (|PMV| ≤ 0.7).")
 
         with st.expander("Detailed Results"):
             st.markdown(f"""
@@ -542,7 +530,7 @@ with col_out:
 | Occupied zone temperature t<sub>oz</sub> | {toz_v:.1f} °C |
 | Energy utilisation index E | {e_v:.3f} |
 | Solver residual (max norm) | {res['res_norm']:.1e} W |
-""", unsafe_allow_html=True)   
+""", unsafe_allow_html=True)
 
     # ── Batch mode ────────────────────────────────────────────────────────────
     else:
@@ -553,25 +541,25 @@ with col_out:
         total = len(ts_list) * len(vs_list)
         combos = [(t, v) for t in ts_list for v in vs_list]
 
-        #  标定范围检查：默认跳过外推工况；
-        #   勾选 “Allow extrapolation” 后计算，但在热力图/表格中明确标记为外推（未验证）
         ext_flags = {c: len(check_validity_domain(a, b, N, c[0], c[1])) > 0 for c in combos}
         n_ext = sum(ext_flags.values())
         if n_ext and not allow_extrap:
             combos = [c for c in combos if not ext_flags[c]]
-            st.warning(f"⚠️ {n_ext} of {total} combinations lie outside the validated range "
-                       f"(t_s {CALIB_RANGE['ts'][0]:g}–{CALIB_RANGE['ts'][1]:g} °C, "
-                       f"v_s {CALIB_RANGE['vs'][0]:g}–{CALIB_RANGE['vs'][1]:g} m/s, "
-                       f"density {CALIB_RANGE['density'][0]:g}–{CALIB_RANGE['density'][1]:g} persons/m²) "
-                       f"and were skipped. Tick **Allow extrapolation** to include them (flagged as extrapolated).")
+            banner('warning',
+                   f"⚠️ {n_ext} of {total} combinations lie outside the validated range "
+                   f"(t<sub>s</sub> {CALIB_RANGE['ts'][0]:g}–{CALIB_RANGE['ts'][1]:g} °C, "
+                   f"v<sub>s</sub> {CALIB_RANGE['vs'][0]:g}–{CALIB_RANGE['vs'][1]:g} m/s, "
+                   f"density {CALIB_RANGE['density'][0]:g}–{CALIB_RANGE['density'][1]:g} persons/m²) "
+                   f"and were skipped. Tick <b>Allow extrapolation</b> to include them "
+                   f"(flagged as extrapolated).")
             if not combos:
-                st.error("No combination lies inside the validated range.")
+                banner('error', "No combination lies inside the validated range.")
                 st.stop()
         elif n_ext:
-            st.warning(f"⚠️ {n_ext} of {total} cases are extrapolations (grey-shaded cells) — NOT validated.")
+            banner('warning', f"⚠️ {n_ext} of {total} cases are extrapolations "
+                              f"(grey-shaded cells) — NOT validated.")
         n_run = len(combos)
 
-        #  “批量优化”改称 “批量参数筛选”
         st.markdown(f"<b style='color:#003399;'>Batch Screening Results — "
                     f"{n_run} cases</b>", unsafe_allow_html=True)
         bar = st.progress(0)
@@ -580,21 +568,18 @@ with col_out:
         for idx, (ts_i, vs_i) in enumerate(combos, 1):
             t_case0 = time.perf_counter()
             model = ThermalModel()
-            try:   #  非法输入给出明确报错
+            try:
                 model.set_case(a, b, hr, Ap, Pt, N, ts_i, vs_i, S, hp,
                                M=M, W=W, I_cl=I_cl, U=U, RH=RH)
             except ValueError as err:
-                st.error(f"⛔ Invalid input: {err}")
+                banner('error', "⛔ Invalid input: " + pretty(err))
                 st.stop()
             res   = model.solve()
             toz_v = res['toz']
-            pd_v  = calc_PD(toz_v, U) if res['converged'] else float('nan')   
+            pd_v  = calc_PD(toz_v, U) if res['converged'] else float('nan')
             pmv_v = res['PMV']
-            # 判据取自 “Acceptance criteria” 面板
             ok    = (res['converged'] and TOZ_LO <= toz_v <= TOZ_HI
                      and pd_v <= PD_LIM and abs(pmv_v) <= PMV_LIM)
-            #  表中保留全精度数值，仅在显示时按位数舍入，
-            #   避免“先舍入再舍入”造成单工况与热力图相差 0.01 °C
             rows.append({'ts': ts_i, 'vs': vs_i, 'ACH': model.ACH,
                          'tf': res['tf'], 'tnf': res['tnf'],
                          'toz': toz_v, 'tmz': res['tmz'],
@@ -603,9 +588,9 @@ with col_out:
                          'PPD': res['PPD'], 'PD': pd_v,
                          'E': res['E'],
                          'converged': res['converged'], 'qualified': ok,
-                         'extrapolated': ext_flags[(ts_i, vs_i)],           
-                         'res_norm': res['res_norm'],                        
-                         'runtime_s': time.perf_counter() - t_case0})        
+                         'extrapolated': ext_flags[(ts_i, vs_i)],
+                         'res_norm': res['res_norm'],
+                         'runtime_s': time.perf_counter() - t_case0})
             bar.progress(idx / n_run)
         t_batch = time.perf_counter() - t_batch0
         bar.empty()
@@ -613,36 +598,32 @@ with col_out:
         df   = pd.DataFrame(rows)
         df_q = df[df['qualified']]
         if len(df_q):
-            st.success(f"✔  {len(df_q)} / {n_run} cases satisfy all criteria")
+            banner('success', f"✔  {len(df_q)} / {n_run} cases satisfy all criteria")
         else:
-            st.warning(f"⚠️  No cases satisfy all criteria ({n_run} computed)")
+            banner('warning', f"⚠️  No cases satisfy all criteria ({n_run} computed)")
         n_fail = int((~df['converged']).sum())
         st.caption(f"Computed {n_run} cases in {t_batch:.2f} s "
                    f"(mean {1000 * t_batch / n_run:.0f} ms/case); "
-                   f"non-converged: {n_fail}; max residual {df['res_norm'].max():.1e} W.")  
+                   f"non-converged: {n_fail}; max residual {df['res_norm'].max():.1e} W.")
 
-        #  合格工况汇总表（含 E 与全部相关指标），并说明 E 最大者是否唯一；
-        #   E 是温度利用有效度指标，不是系统总能效，故不据此给出“全局最佳/推荐”工况
         if len(df_q):
             disp = df_q[['ts', 'vs', 'toz', 'PMV', 'PPD', 'PD', 'E', 'extrapolated']]
-            st.dataframe(disp.round({'ts': 1, 'vs': 2, 'toz': 1, 'PMV': 2, 'PPD': 1, 'PD': 1,
-                                     'E': 3}),
+            disp = disp.round({'ts': 1, 'vs': 2, 'toz': 1, 'PMV': 2, 'PPD': 1, 'PD': 1, 'E': 3})
+            st.dataframe(disp.rename(columns=COLMAP),
                          use_container_width=True, hide_index=True)
             top = df_q[df_q['E'] >= df_q['E'].max() - 1e-3]
             st.caption(f"Highest E among the acceptable cases: {df_q['E'].max():.3f} "
                        f"({'unique' if len(top) == 1 else f'tied: {len(top)} cases within 0.001'}). ")
 
-        def make_heatmap(col, title, colorscale, zmid=None, dec=2):
+        def make_heatmap(col, title, colorscale, zmid=None, dec=2, cb_title=None):
             pivot = df.pivot(index='vs', columns='ts', values=col)
             kw = dict(zmid=zmid) if zmid is not None else {}
-            #  温度 1 位小数、E 3 位小数，其余 2 位；缺失格（被跳过的外推工况）不显示文字
             txt = [[f"{v:.{dec}f}" if np.isfinite(v) else "" for v in row] for row in pivot.values]
             fig = go.Figure(go.Heatmap(
                 z=pivot.values, x=pivot.columns.tolist(),
                 y=pivot.index.tolist(), colorscale=colorscale,
                 text=txt, texttemplate="%{text}",
-                colorbar=dict(title=col), **kw))
-            #  外推单元格灰色遮罩标记（未验证）
+                colorbar=dict(title=cb_title or col), **kw))
             for _, row in df[df['extrapolated']].iterrows():
                 fig.add_shape(type='rect',
                     x0=row['ts'] - 0.5*ts_step, x1=row['ts'] + 0.5*ts_step,
@@ -669,7 +650,8 @@ with col_out:
             "Energy Utilisation E", "Data Table"])
         with tab1:
             st.plotly_chart(make_heatmap('toz',
-                'Occupied Zone Temperature t<sub>oz</sub> (°C)', 'RdYlGn_r', dec=1),
+                'Occupied Zone Temperature t<sub>oz</sub> (°C)', 'RdYlGn_r', dec=1,
+                cb_title='t<sub>oz</sub>'),
                 use_container_width=True, config=PLOT_CONFIG)
             st.caption("Dark blue border = all criteria satisfied; "
                        "grey shading = extrapolated (outside the validated range, not validated).")
@@ -681,26 +663,33 @@ with col_out:
                 'YlOrRd', dec=1), use_container_width=True, config=PLOT_CONFIG)
         with tab4:
             st.plotly_chart(make_heatmap('PD', 'Draft PD (%)',
-                'YlOrRd', dec=1), use_container_width=True, config=PLOT_CONFIG)
+                'YlOrRd', dec=1, cb_title='PD'),
+                use_container_width=True, config=PLOT_CONFIG)
         with tab6:
-            #  E 热力图（文中依据 E 比较工况，需给出 E 的结果）
             st.plotly_chart(make_heatmap('E',
                 'Energy Utilisation Index E', 'Blues', dec=3),
                 use_container_width=True, config=PLOT_CONFIG)
         with tab7:
-            st.dataframe(df.round({'ts': 1, 'vs': 2, 'ACH': 2, 'tf': 1, 'tnf': 1, 'toz': 1,
-                                   'tmz': 1, 'te': 1, 'tc': 1, 'PMV': 2, 'PPD': 1, 'PD': 1,
-                                   'E': 3, 'runtime_s': 4}),
+            df_show = df.round({'ts': 1, 'vs': 2, 'ACH': 2, 'tf': 1, 'tnf': 1, 'toz': 1,
+                                'tmz': 1, 'te': 1, 'tc': 1, 'PMV': 2, 'PPD': 1, 'PD': 1,
+                                'E': 3, 'runtime_s': 4})
+            st.dataframe(df_show.rename(columns=COLMAP),
                          use_container_width=True, height=380)
-            csv = df.to_csv(index=False).encode('utf-8-sig')
+            csv = df.rename(columns=COLMAP).to_csv(index=False).encode('utf-8-sig')
             st.download_button("⬇️  Download CSV (full precision)", csv,
                                file_name="ijv_results.csv", mime="text/csv")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 st.divider()
-st.caption(
-    "IJV Thermal Comfort Tool  ·  four-zonal model  ·  "
-    "PMV/PPD: ISO 7730:2025 / ASHRAE 55-2023  ·  "
-    "Default comfort criteria (editable): t_oz 24–28 °C  |  Draft PD ≤ 20 %  |  |PMV| ≤ 0.5  ·  "
-    "Validated range: t_s 15–19 °C, v_s 1.6–2.8 m/s, 1.28–2.4 persons/m²"   
+st.markdown(
+    f"<div style='font-size:13px; color:{C_NEUTRAL}; line-height:1.6;'>"
+    "IJV Thermal Comfort Tool &nbsp;·&nbsp; four-zonal model &nbsp;·&nbsp; "
+    "PMV/PPD: ISO 7730:2025 / ASHRAE 55-2023 &nbsp;·&nbsp; "
+    f"Comfort criteria: t<sub>oz</sub> {TOZ_LO:g}–{TOZ_HI:g} °C &nbsp;|&nbsp; "
+    f"Draft PD ≤ {PD_LIM:g} % &nbsp;|&nbsp; |PMV| ≤ {PMV_LIM:g} &nbsp;·&nbsp; "
+    f"Validated range: t<sub>s</sub> {CALIB_RANGE['ts'][0]:g}–{CALIB_RANGE['ts'][1]:g} °C, "
+    f"v<sub>s</sub> {CALIB_RANGE['vs'][0]:g}–{CALIB_RANGE['vs'][1]:g} m/s, "
+    f"{CALIB_RANGE['density'][0]:g}–{CALIB_RANGE['density'][1]:g} persons/m²"
+    "</div>",
+    unsafe_allow_html=True,
 )
