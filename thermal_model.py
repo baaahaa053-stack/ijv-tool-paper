@@ -100,8 +100,8 @@ def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH
       tr = (tf·A_floor + tc·A_ceiling + tp·N·Ap) / (A_floor + A_ceiling + N·Ap)
       即仅考虑地板、天花板、人体表面三类表面的面积加权平均；
       四周墙面温度与角系数在本模型中未单独求解，因此未计入。
-    M、W、I_cl、U、RH 均为函数参数，app.py 中已改为用户可编辑，
-      默认值保持不变（M=58.15 W/m²=1.0 met）。
+    M、W、I_cl、U、RH 均为函数参数；app.py 中固定为默认值
+      （M=58.15 W/m²=1.0 met，W=0，I_cl=0.124 m²K/W，U=0.3 m/s，RH=50%），界面不可编辑。
     """
     ta  = toz
     MW  = M - W
@@ -200,8 +200,8 @@ class ThermalModel:
         eps = 1e-10
 
         Ar   = self.g * self.hr * (te - self.ts) / ((toz + 273.15) * (self.Qs / self.Af)**2)
-        # 25.0 为标定房间地面面积
-        Zr   = (25.0 / self.N)**0.5 / 1.71
+        # Zr 中的房间地面面积取用户输入的 Af = a × b（标定房间为 25 m²，此时与原固定值 25.0 相同）
+        Zr   = (self.Af / self.N)**0.5 / 1.71
         #  ln(Ar) 要求 Ar > 0。求解迭代中若 Ar ≤ 0（te ≤ ts 等非物理状态）
         #   用极小正数截断以避免 nan/-inf 破坏迭代；Ar > 0 时方程与原来完全相同。
         #   最终解是否落在 Ar > 0 的物理区域，由 solve() 中的合理性检查负责判定。
@@ -354,7 +354,7 @@ class BatchSolver:
     TOZ_MIN, TOZ_MAX = 24.0, 28.0   # 工作区温度合格范围 (°C)
     PD_MIN,  PD_MAX  =  0.0, 20.0   # 草稿热不舒适度合格范围 (%)
     PMV_MIN, PMV_MAX = -0.5,  0.5   # PMV 合格范围 (ISO 7730 Category B)
-    # 以上判据为默认值；app.py 中已改为用户可配置。
+    # 以上判据与 app.py 顶部的固定判据一致（TOZ_LO/TOZ_HI、PD_LIM、PMV_LIM）。
 
     def __init__(self):
         self.df = pd.DataFrame()
