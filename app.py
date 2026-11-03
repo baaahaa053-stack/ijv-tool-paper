@@ -84,13 +84,13 @@ def pmv_color(v):
     return C_WARN
 
 def pmv_label(v):
+    """PMV 状态标签：与论文第 2.2 节一致（|PMV| ≤ 0.5 / ≤ 0.7 / > 0.7 三档）。"""
     ashrae_ok, iso = pmv_category(v)
     if abs(v) <= 0.5:
-        return f"✔  Comfortable (ASHRAE 55 ✓ · ISO 7730:2025 Category {iso})"
+        return f"✔  Within ASHRAE 55 (|PMV| ≤ 0.5) · ISO 7730:2025 Category {iso}"
     if abs(v) <= 0.7:
-        return "△  Acceptable only under ISO 7730 Category C (ASHRAE 55 ✗)"
-    if abs(v) <= 1.0: return "△  Slightly uncomfortable"
-    return "✘  Uncomfortable"
+        return "△  ISO 7730:2025 Category C only (ASHRAE 55 not met)"
+    return "✘  Outside ISO 7730:2025 categories (|PMV| > 0.7)"
 
 def labeled_input(col, label_html, key, **kwargs):
     """Render a proper HTML label (supports <sub>, upright, correct size)
@@ -209,8 +209,8 @@ with col_in:
     if single:
         c1, c2 = st.columns(2)
         ts = labeled_input(c1, "Supply temp t<sub>s</sub> (°C)", "in_ts",
-                           value=18.00, step=0.5, format="%.2f", min_value=-10.0, max_value=40.0,
-                           help=f"Supply air temperature. Validated range: "
+                           value=18.00, step=0.5, format="%.2f", min_value=15.0, max_value=24.0,
+                           help=f"Supply air temperature (accepted range 15–24 °C). Validated range: "
                                 f"{CALIB_RANGE['ts'][0]:g}–{CALIB_RANGE['ts'][1]:g} °C")
         vs = labeled_input(c2, "Supply vel v<sub>s</sub> (m/s)", "in_vs",
                            value=2.00, step=0.1, format="%.2f", min_value=0.1,
@@ -343,7 +343,7 @@ with col_out:
         kpi(k2, "PMV",            pmv_v, "",     (-PMV_LIM, PMV_LIM))
         kpi(k3, "PPD",            ppd_v, " %",   dec=1)
         kpi(k4, "Draft PD",       pd_v,  " %",   (0, PD_LIM), dec=1)
-        kpi(k5, "Energy Utilisation Index E", e_v, "", dec=3)
+        kpi(k5, "Air-temp. utilization E", e_v, "", dec=3)
         st.caption(f"Computed in {runtime_s * 1000:.0f} ms.")
         st.markdown("")
 
@@ -528,7 +528,7 @@ with col_out:
 | Floor zone temperature t<sub>nf</sub> | {res['tnf']:.1f} °C |
 | Mixed zone temperature t<sub>mz</sub> | {res['tmz']:.1f} °C |
 | Occupied zone temperature t<sub>oz</sub> | {toz_v:.1f} °C |
-| Energy utilisation index E | {e_v:.3f} |
+| Air-temperature utilization E | {e_v:.3f} |
 | Solver residual (max norm) | {res['res_norm']:.1e} W |
 """, unsafe_allow_html=True)
 
@@ -647,7 +647,7 @@ with col_out:
 
         tab1, tab2, tab3, tab4, tab6, tab7 = st.tabs([
             "Occupied Zone Temp", "PMV", "PPD", "Draft PD",
-            "Energy Utilisation E", "Data Table"])
+            "Air-Temp. Utilization E", "Data Table"])
         with tab1:
             st.plotly_chart(make_heatmap('toz',
                 'Occupied Zone Temperature t<sub>oz</sub> (°C)', 'RdYlGn_r', dec=1,
@@ -667,7 +667,7 @@ with col_out:
                 use_container_width=True, config=PLOT_CONFIG)
         with tab6:
             st.plotly_chart(make_heatmap('E',
-                'Energy Utilisation Index E', 'Blues', dec=3),
+                'Air-temperature utilization E', 'Blues', dec=3),
                 use_container_width=True, config=PLOT_CONFIG)
         with tab7:
             df_show = df.round({'ts': 1, 'vs': 2, 'ACH': 2, 'tf': 1, 'tnf': 1, 'toz': 1,
