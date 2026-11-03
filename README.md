@@ -77,7 +77,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-每次 push 和 pull request 时，GitHub Actions 会在 Python 3.10 和 3.11 下自动运行测试。测试涵盖热模型（以论文第 3.1 节单工况算例为参考值）、PMV/PPD（与 pythermalcomfort 的 ISO 7730 实现对照）、PD 和 E。
+每次 push 和 pull request 时,GitHub Actions 会在 Python 3.10 和 3.11 下自动运行测试。测试涵盖热模型(以论文第 3.1 节单工况算例为参考值)、PMV/PPD、PD 和 E。其中 PMV/PPD 与 pythermalcomfort(ISO 7730)的对照测试需要 pythermalcomfort 4.8.0,该版本要求 Python ≥ 3.11,因此仅在 Python 3.11 下运行,在 3.10 下自动跳过。
 
 ## 作为 Python 模块调用（无界面）
 
