@@ -1,2 +1,2 @@
-   pytest
-   pythermalcomfort==4.8.0
+pytest
+pythermalcomfort==4.8.0; python_version >= "3.11"
