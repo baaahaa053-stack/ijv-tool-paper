@@ -93,6 +93,17 @@ res = m.solve()
 print(res["converged"], res["toz"], res["PMV"], res["PPD"], res["E"])
 ```
 
+预期输出（与 `tests/test_thermal_comfort.py` 中的参考值一致，即论文第 3.1 节算例）：
+
+| 量 | 值 |
+|---|---|
+| t_oz | 25.67 °C |
+| t_f | 26.07 °C |
+| t_c | 31.39 °C |
+| PMV | 0.73 |
+| PPD | 16.2 % |
+| E | 1.268 |
+
 ## 求解器稳健性检验
 
 在仓库根目录运行 `python robustness_check.py`，可复现收敛性统计结果
