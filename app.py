@@ -139,6 +139,18 @@ COLMAP = {'ts': 'ts (°C)', 'vs': 'vs (m/s)', 'ACH': 'ACH (h⁻¹)',
           'extrapolated': 'extrapolated',
           'res_norm': 'residual (W)', 'runtime_s': 'runtime (s)'}
 
+# 数据表固定小数位：避免 Streamlit 自动去掉末尾的 0（如 1.260 显示为 1.26）
+COLFMT = {'ts (°C)': "%.1f", 'vs (m/s)': "%.2f", 'ACH (h⁻¹)': "%.2f",
+          'tf (°C)': "%.1f", 'tnf (°C)': "%.1f", 'toz (°C)': "%.1f",
+          'tmz (°C)': "%.1f", 'te (°C)': "%.1f", 'tc (°C)': "%.1f",
+          'PMV': "%.2f", 'PPD (%)': "%.1f", 'Draft PD (%)': "%.1f",
+          'E': "%.3f", 'runtime (s)': "%.4f"}
+
+def colcfg(df):
+    """为表格中的数值列指定固定小数位。"""
+    return {c: st.column_config.NumberColumn(format=COLFMT[c])
+            for c in df.columns if c in COLFMT}
+
 # ── Page header ───────────────────────────────────────────────────────────────
 st.markdown(
     f"<div style='display:flex; align-items:baseline; gap:14px; "
@@ -609,8 +621,9 @@ with col_out:
         if len(df_q):
             disp = df_q[['ts', 'vs', 'toz', 'PMV', 'PPD', 'PD', 'E', 'extrapolated']]
             disp = disp.round({'ts': 1, 'vs': 2, 'toz': 1, 'PMV': 2, 'PPD': 1, 'PD': 1, 'E': 3})
-            st.dataframe(disp.rename(columns=COLMAP),
-                         use_container_width=True, hide_index=True)
+            disp_show = disp.rename(columns=COLMAP)
+            st.dataframe(disp_show, use_container_width=True, hide_index=True,
+                         column_config=colcfg(disp_show))
             top = df_q[df_q['E'] >= df_q['E'].max() - 1e-3]
             st.caption(f"Highest E among the acceptable cases: {df_q['E'].max():.3f} "
                        f"({'unique' if len(top) == 1 else f'tied: {len(top)} cases within 0.001'}). ")
@@ -673,8 +686,9 @@ with col_out:
             df_show = df.round({'ts': 1, 'vs': 2, 'ACH': 2, 'tf': 1, 'tnf': 1, 'toz': 1,
                                 'tmz': 1, 'te': 1, 'tc': 1, 'PMV': 2, 'PPD': 1, 'PD': 1,
                                 'E': 3, 'runtime_s': 4})
-            st.dataframe(df_show.rename(columns=COLMAP),
-                         use_container_width=True, height=380)
+            df_view = df_show.rename(columns=COLMAP)
+            st.dataframe(df_view, use_container_width=True, height=380,
+                         column_config=colcfg(df_view))
             csv = df.rename(columns=COLMAP).to_csv(index=False).encode('utf-8-sig')
             st.download_button("⬇️  Download CSV (full precision)", csv,
                                file_name="ijv_results.csv", mime="text/csv")
