@@ -64,7 +64,7 @@ DEFAULT_U    = 0.3     # Air speed in occupied zone (m/s)
 # ── 固定的合格判据（不在页面左侧显示、不可编辑）──────────────────────────────
 TOZ_LO, TOZ_HI = 24.0, 28.0   # 工作区温度 (°C)
 PD_LIM         = 20.0         # 吹风感不满意率上限 (%)
-PMV_LIM        = 0.5          # |PMV| 上限 (ASHRAE 55 / ISO 7730 Category B)
+PMV_LIM        = 0.5          # |PMV| 上限 (ASHRAE 55 / ISO 7730 Category II)
 
 # ── Colour palette (engineering psychrometric chart convention) ──────────────
 C_SUPPLY  = "#0000FF"   # pure blue   — supply / cold
@@ -84,13 +84,14 @@ def pmv_color(v):
     return C_WARN
 
 def pmv_label(v):
-    """PMV 状态标签：与论文第 2.2 节一致（|PMV| ≤ 0.5 / ≤ 0.7 / > 0.7 三档）。"""
+    """PMV 状态标签：与论文第 2.2 节一致
+    （ISO 7730:2025 Category I–IV；|PMV| ≥ 1.0 为类别之外；ASHRAE 55 要求 |PMV| ≤ 0.5）。"""
     ashrae_ok, iso = pmv_category(v)
-    if abs(v) <= 0.5:
+    if ashrae_ok:
         return f"✔  Within ASHRAE 55 (|PMV| ≤ 0.5) · ISO 7730:2025 Category {iso}"
-    if abs(v) <= 0.7:
-        return "△  ISO 7730:2025 Category C only (ASHRAE 55 not met)"
-    return "✘  Outside ISO 7730:2025 categories (|PMV| > 0.7)"
+    if iso in ('III', 'IV'):
+        return f"△  ISO 7730:2025 Category {iso} only (ASHRAE 55 not met)"
+    return "✘  Outside ISO 7730:2025 categories (|PMV| ≥ 1.0)"
 
 def labeled_input(col, label_html, key, **kwargs):
     """Render a proper HTML label (supports <sub>, upright, correct size)
@@ -505,11 +506,13 @@ with col_out:
                     'bgcolor': 'white',
                     'borderwidth': 0,
                     'steps': [
-                        {'range': [-3,   -0.7], 'color': '#d6eaf8'},
-                        {'range': [-0.7, -0.5], 'color': '#eef5d0'},
-                        {'range': [-0.5,  0.5], 'color': '#d5f5e3'},
-                        {'range': [0.5,   0.7], 'color': '#eef5d0'},
-                        {'range': [0.7,   3  ], 'color': '#fde8e8'},
+                        {'range': [-3,   -1.0], 'color': '#d6eaf8'},   # outside categories (cold side)
+                        {'range': [-1.0, -0.7], 'color': '#fdebd0'},   # Category IV
+                        {'range': [-0.7, -0.5], 'color': '#eef5d0'},   # Category III
+                        {'range': [-0.5,  0.5], 'color': '#d5f5e3'},   # Category II / I (ASHRAE 55)
+                        {'range': [0.5,   0.7], 'color': '#eef5d0'},   # Category III
+                        {'range': [0.7,   1.0], 'color': '#fdebd0'},   # Category IV
+                        {'range': [1.0,   3  ], 'color': '#fde8e8'},   # outside categories (warm side)
                     ],
                     'threshold': {
                         'line': {'color': '#1a3a5c', 'width': 2},
@@ -524,8 +527,9 @@ with col_out:
                 font=dict(family="Times New Roman"),
             )
             st.plotly_chart(fig2, use_container_width=True, config=PLOT_CONFIG)
-            st.caption("Green: ASHRAE 55 (|PMV| ≤ 0.5, = ISO 7730 Cat. B); "
-                       "yellow-green: ISO 7730 Cat. C only (|PMV| ≤ 0.7).")
+            st.caption("Green: ASHRAE 55 (|PMV| ≤ 0.5, ISO 7730 Cat. I–II); "
+                       "yellow-green: Cat. III (|PMV| < 0.7); "
+                       "orange: Cat. IV (|PMV| < 1.0).")
 
         with st.expander("Detailed Results"):
             st.markdown(f"""
