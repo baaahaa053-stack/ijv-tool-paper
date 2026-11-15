@@ -150,15 +150,17 @@ def calc_PMV(toz, tf, tc, tp, a, b, N, Ap, M=58.15, W=0.0, I_cl=0.124, U=0.3, RH
 
 #  统一的 PMV 等级与阈值（供界面和批量共用）
 #   ASHRAE 55-2023 ：|PMV| ≤ 0.5
-#   ISO 7730:2025  ：Category A |PMV| ≤ 0.2 ；B ≤ 0.5 ；C ≤ 0.7
+#   ISO 7730:2025  ：Category I |PMV| < 0.2 ；II < 0.5 ；III < 0.7 ；IV < 1.0
+#                    （|PMV| ≥ 1.0 为类别之外）
 def pmv_category(pmv):
-    """返回 (ASHRAE 55 是否满足, ISO 7730 等级 'A'/'B'/'C'/'outside')"""
+    """返回 (ASHRAE 55 是否满足, ISO 7730:2025 类别 'I'/'II'/'III'/'IV'/'outside')"""
     p = abs(pmv)
     ashrae_ok = p <= 0.5
-    if p <= 0.2:   iso = 'A'
-    elif p <= 0.5: iso = 'B'
-    elif p <= 0.7: iso = 'C'
-    else:          iso = 'outside'
+    if p < 0.2:   iso = 'I'
+    elif p < 0.5: iso = 'II'
+    elif p < 0.7: iso = 'III'
+    elif p < 1.0: iso = 'IV'
+    else:         iso = 'outside'
     return ashrae_ok, iso
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -353,7 +355,7 @@ class ThermalModel:
 class BatchSolver:
     TOZ_MIN, TOZ_MAX = 24.0, 28.0   # 工作区温度合格范围 (°C)
     PD_MIN,  PD_MAX  =  0.0, 20.0   # 草稿热不舒适度合格范围 (%)
-    PMV_MIN, PMV_MAX = -0.5,  0.5   # PMV 合格范围 (ISO 7730 Category B)
+    PMV_MIN, PMV_MAX = -0.5,  0.5   # PMV 合格范围 (ASHRAE 55 / ISO 7730 Category II)
     # 以上判据与 app.py 顶部的固定判据一致（TOZ_LO/TOZ_HI、PD_LIM、PMV_LIM）。
 
     def __init__(self):
