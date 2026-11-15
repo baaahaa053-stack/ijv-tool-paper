@@ -77,7 +77,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-每次 push 和 pull request 时,GitHub Actions 会在 Python 3.10 和 3.11 下自动运行测试。测试涵盖热模型(以论文第 3.1 节单工况算例为参考值)、PMV/PPD、PD 和 E。其中 PMV/PPD 与 pythermalcomfort(ISO 7730)的对照测试需要 pythermalcomfort 4.8.0,该版本要求 Python ≥ 3.11,因此仅在 Python 3.11 下运行,在 3.10 下自动跳过。
+每次 push 和 pull request 时,GitHub Actions 会在 Python 3.10 和 3.11 下自动运行测试。测试涵盖热模型、PMV/PPD、PD 和 E。其中 PMV/PPD 与 pythermalcomfort(ISO 7730)的对照测试需要 pythermalcomfort 4.8.0,该版本要求 Python ≥ 3.11,因此仅在 Python 3.11 下运行,在 3.10 下自动跳过。
 
 ## 作为 Python 模块调用（无界面）
 
@@ -93,7 +93,7 @@ res = m.solve()
 print(res["converged"], res["toz"], res["PMV"], res["PPD"], res["E"])
 ```
 
-预期输出（与 `tests/test_thermal_comfort.py` 中的参考值一致，即论文第 3.1 节算例）：
+预期输出（与 `tests/test_thermal_comfort.py` 中的参考值一致）：
 
 | 量 | 值 |
 |---|---|
@@ -111,7 +111,7 @@ print(res["converged"], res["toz"], res["PMV"], res["PPD"], res["E"])
 
 ## 引用
 
-如果本工具对你的研究或工程设计有帮助，欢迎引用【投稿录用后补充正式引用格式，例如作者、期刊、DOI】。
+如果本工具对你的研究或工程设计有帮助，欢迎引用。
 
 ## 许可证
 
